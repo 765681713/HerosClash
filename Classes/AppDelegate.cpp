@@ -1,5 +1,6 @@
 #include "AppDelegate.h"
 #include "HelloWorldScene.h"
+#include "SimpleAudioEngine.h"
 
 USING_NS_CC;
 
@@ -71,6 +72,8 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	resPaths.push_back("res/effect/");
 	resPaths.push_back("res/heroos/");
 	resPaths.push_back("res/ui/");
+	resPaths.push_back("audio/");
+	resPaths.push_back("audio/effect");
 	FileUtils::getInstance()->setSearchPaths(resPaths);
 
     // create a scene. it's an autorelease object
@@ -87,7 +90,7 @@ void AppDelegate::applicationDidEnterBackground() {
     Director::getInstance()->stopAnimation();
 
     // if you use SimpleAudioEngine, it must be paused
-    // SimpleAudioEngine::getInstance()->pauseBackgroundMusic();
+	CocosDenshion::SimpleAudioEngine::getInstance()->pauseBackgroundMusic();
 }
 
 // this function will be called when the app is active again
@@ -95,5 +98,5 @@ void AppDelegate::applicationWillEnterForeground() {
     Director::getInstance()->startAnimation();
 
     // if you use SimpleAudioEngine, it must resume here
-    // SimpleAudioEngine::getInstance()->resumeBackgroundMusic();
+	CocosDenshion::SimpleAudioEngine::getInstance()->resumeBackgroundMusic();
 }

@@ -5,10 +5,12 @@
 #include "LoadingScene.h"
 #include "cocostudio\CocoStudio.h"
 #include "ui\CocosGUI.h"
+#include "SimpleAudioEngine.h"
 
 USING_NS_CC;
 
 using namespace cocostudio;
+using namespace CocosDenshion;
 
 class MenuScene : public Layer
 {
@@ -18,6 +20,9 @@ public:
 	~MenuScene();
 
 	static cocos2d::Scene* createScene();
+
+	virtual void onEnterTransitionDidFinish();
+	virtual void cleanup();
 
 	bool spriteTouchBegan(Touch * touch, Event* ev);
 	void spriteTouchMove(Touch* touch, Event* ev);

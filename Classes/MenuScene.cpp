@@ -81,9 +81,21 @@ void MenuScene::downEnd(Node *  node){
 	}
 	}
 }
+
+void MenuScene::onEnterTransitionDidFinish(){
+	SimpleAudioEngine::getInstance()->playBackgroundMusic("main_scene.mp3", true);
+
+}
+
+void MenuScene::cleanup(){
+	SimpleAudioEngine::getInstance()->stopBackgroundMusic("main_scene.mp3");
+
+}
+
+
 void MenuScene::onExit(){
 	Layer::onExit();
-
+	SimpleAudioEngine::getInstance()->stopBackgroundMusic("main_scene.mp3");
 }
 
 MenuScene::~MenuScene(){
@@ -91,5 +103,8 @@ MenuScene::~MenuScene(){
 	Director::getInstance()->getScheduler()->unscheduleAll();
 	Director::getInstance()->getTextureCache()->removeAllTextures();
 	SpriteFrameCache::getInstance()->removeSpriteFrames();
+	//SimpleAudioEngine::getInstance()->
 	//AnimationCache::getInstance()->
 }
+
+
