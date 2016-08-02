@@ -30,7 +30,7 @@ bool HelloWorld::init()
 	auto visibleSize = Director::getInstance()->getVisibleSize();
 	//Vec2 origin = Director::getInstance()->getVisibleOrigin();
 	//使用cocostudio 加载csb文件
-	Node * sceneNode = CSLoader::createNode("MainScene.csb");
+	Node * sceneNode = CSLoader::createNode("loadingScene.csb");
 	sceneNode->setAnchorPoint(Vec2::ZERO);
 	sceneNode->setPosition(Vec2::ZERO);
 	this->addChild(sceneNode);

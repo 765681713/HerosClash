@@ -1,10 +1,8 @@
 #include "MenuScene.h"
 
 Scene * MenuScene::createScene(){
-
 	auto scene = Scene::create();
 	auto layer = MenuScene::create();
-
 	scene->addChild(layer);
 	return scene;
 }
@@ -15,55 +13,83 @@ bool MenuScene::init(){
 		return false;
 	}
 	auto visibleSize = Director::getInstance()->getVisibleSize();
-	//SpriteFrame * frame = SpriteFrame::createWithTexture(Director::getInstance()->getTextureCache()->get);
-	Sprite * sprite = Sprite::createWithSpriteFrameName("menu_bg");
-	//Size size = Size::ZERO;
-	//size.width = visibleSize.width;
-	//size.height = visibleSize.height;
-	//sprite->setContentSize(size);
-	sprite->setPosition(Vec2::ZERO);
-	sprite->setAnchorPoint(Vec2::ZERO);
-	this->addChild(sprite);
-	MenuItem * gameGuide = MenuItemImage::create("game_guide_off.png", "game_guide_on.png", CC_CALLBACK_1(MenuScene::menuCallBack, this));
-	gameGuide->setTag(MenuType::GameGuide);
-	MenuItem * startGame = MenuItemImage::create("start_game_off.png", "start_game_on.png", CC_CALLBACK_1(MenuScene::menuCallBack, this));
-	startGame->setTag(MenuType::StartGame);
-	MenuItem * gameSetting = MenuItemImage::create("game_setting_off.png", "game_setting_on.png", CC_CALLBACK_1(MenuScene::menuCallBack, this));
-	gameSetting->setTag(MenuType::GameSetting);
-	MenuItem * aboutHelp = MenuItemImage::create("about_help_off.png", "about_help_on.png", CC_CALLBACK_1(MenuScene::menuCallBack, this));
-	aboutHelp->setTag(MenuType::AboutHelp);
-
-	auto menu = Menu::create(gameGuide, startGame, gameSetting, aboutHelp, NULL);
-	menu->alignItemsVerticallyWithPadding(12);
-	menu->setAnchorPoint(Vec2::ZERO);
-	menu->setPosition(visibleSize.width - gameGuide->getContentSize().width / 2 - 40, visibleSize.height / 2 + 40);
-	this->addChild(menu);
+	Node * sceneNode = CSLoader::createNode("MainScene.csb");
+	sceneNode->setAnchorPoint(Vec2::ZERO);
+	sceneNode->setPosition(Vec2::ZERO);
+	this->addChild(sceneNode);
+	ui::ScrollView * scrollView = static_cast<ui::ScrollView *>(sceneNode->getChildByName("ScrollView_1"));
+	scrollView->setScrollBarEnabled(false);
+	auto node = scrollView->getChildByName("Sprite_1");
+	node->setTag(MenuType::ScrollOpenGame);
+	//auto node = scrollView->getChildByName("Sprite_1");
+	//node->setTag(MenuType::ScrollOpenGame);
+	auto spriteListener = EventListenerTouchOneByOne::create();
+	spriteListener->setSwallowTouches(true);
+	spriteListener->onTouchBegan = CC_CALLBACK_2(MenuScene::spriteTouchBegan, this);
+	spriteListener->onTouchEnded = CC_CALLBACK_2(MenuScene::spriteTouchEnd, this);
+	auto eventDispatcher = Director::getInstance()->getEventDispatcher();
+	eventDispatcher->addEventListenerWithSceneGraphPriority(spriteListener, node);
 	return true;
 }
 
-void MenuScene::menuCallBack(Ref * ref){
-	switch (((MenuItem*)ref)->getTag()){
+bool MenuScene::spriteTouchBegan(Touch* touch, Event* ev){
+	//auto targt = static_cast<Sprite *>(ev->getCurrentTarget());
+	auto targt = ev->getCurrentTarget();
+	Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
+	Size size = targt->getContentSize();
+	Rect rect = Rect(0, 0, size.width, size.height);
+	if (rect.containsPoint(loacatinInNode)){
+		targt->runAction(ScaleTo::create(0.1f, 0.4f));
+		return true;
+	}
+	return false;
+}
+void MenuScene::spriteTouchMove(Touch* touch, Event* ev){
 
-	case MenuType::GameGuide:{
-		log(" menuCallBack GameGuide ");
-		Scene * sc = LoadingScene::createScene(MenuType::GameGuide);
-		Director::getInstance()->replaceScene(sc);
-		break;
-	}
-	case MenuType::StartGame:{
-		log(" menuCallBack StartGame ");
-		Scene * sc = LoadingScene::createScene(MenuType::StartGame);
-		Director::getInstance()->replaceScene(sc);
-		break;
-	}
-	case MenuType::GameSetting:{
-		log(" menuCallBack GameSetting ");
-		break;
-	}
-	case MenuType::AboutHelp:{
-		log(" menuCallBack AboutHelp ");
-		break;
-	}
 
+}
+void MenuScene::spriteTouchEnd(Touch* touch, Event* ev){
+	//auto targt = static_cast<Sprite *>(ev->getCurrentTarget());
+	auto targt = ev->getCurrentTarget();
+	Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
+	Size size = targt->getContentSize();
+	Rect rect = Rect(0, 0, size.width, size.height);
+	if (rect.containsPoint(loacatinInNode)){
+		auto sequence = Sequence::create(ScaleTo::create(0.2f, 0.6f), ScaleTo::create(0.1f, 0.5f), CallFuncN::create(CC_CALLBACK_1(MenuScene::downEnd, this)), NULL);
+		targt->runAction(sequence);
 	}
+	else{
+		targt->runAction(ScaleTo::create(0.1f, 0.5f));
+	}
+}
+
+void MenuScene::downEnd(Node *  node){
+	int type = node->getTag();
+	switch (type){
+	case MenuType::ScrollOpenGame:{
+		Scene * ms = LoadingScene::createScene(MenuType::ScrollOpenGame);
+		Director::getInstance()->pushScene(ms);
+		break;
+	}
+	case MenuType::LayoutIcon:{
+
+		break;
+	}
+	case MenuType::LayoutName:{
+
+		break;
+	}
+	}
+}
+void MenuScene::onExit(){
+	Layer::onExit();
+
+}
+
+MenuScene::~MenuScene(){
+	Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+	Director::getInstance()->getScheduler()->unscheduleAll();
+	Director::getInstance()->getTextureCache()->removeAllTextures();
+	SpriteFrameCache::getInstance()->removeSpriteFrames();
+	//AnimationCache::getInstance()->
 }

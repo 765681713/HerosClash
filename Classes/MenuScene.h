@@ -3,25 +3,39 @@
 
 #include "cocos2d.h"
 #include "LoadingScene.h"
+#include "cocostudio\CocoStudio.h"
+#include "ui\CocosGUI.h"
 
 USING_NS_CC;
+
+using namespace cocostudio;
 
 class MenuScene : public Layer
 {
 public:
 	CREATE_FUNC(MenuScene);
 	virtual bool init();
+	~MenuScene();
 
 	static cocos2d::Scene* createScene();
 
-	void menuCallBack(Ref * ref);
+	bool spriteTouchBegan(Touch * touch, Event* ev);
+	void spriteTouchMove(Touch* touch, Event* ev);
+	void spriteTouchEnd(Touch* touch, Event* ev);
+
+	void downEnd(Node *  node);
+
+	virtual void onExit();
+
 };
 
 typedef enum {
-	GameGuide,
-	StartGame,
-	GameSetting,
-	AboutHelp
+	//滚动屏中的精灵
+	ScrollOpenGame,
+	//左上角的信息
+	LayoutIcon,
+	LayoutName,
+	LayoutLevel
 }MenuType;
 
 #endif

@@ -22,7 +22,6 @@ bool LoadingScene::init(){
 	Animation * animation = Animation::create();
 	for (int i = 1; i <= 12; i++){
 		__String* str = __String::createWithFormat("loading%04d.png", i);
-		log(" init : str = %s" , str->getCString());
 		SpriteFrame * sf = SpriteFrameCache::getInstance()->getSpriteFrameByName(str->getCString());
 		animation->addSpriteFrame(sf);
 	}
@@ -30,7 +29,7 @@ bool LoadingScene::init(){
 	animation->setRestoreOriginalFrame(true);
 	Animate * ani = Animate::create(animation);
 	Sprite * loadSprite = Sprite::createWithSpriteFrameName("loading0001.png");
-	loadSprite->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 5));
+	loadSprite->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 8));
 	this->addChild(loadSprite);
 	loadSprite->runAction(RepeatForever::create(ani));
 	return true;
@@ -53,14 +52,8 @@ void LoadingScene::onExit(){
 
 void LoadingScene::onExitCallback(float time){
 	MenuType type = static_cast<MenuType>(this->getTag());
-	if (type == MenuType::GameGuide){
-		log("LoadingScene   GameGuide");
+	if (type == MenuType::ScrollOpenGame){
+		log("LoadingScene   ScrollOpenGame");
 		
 	}
-	else if(type == MenuType::StartGame){
-		log("LoadingScene   StartGame");
-
-		
-	}
-	
 }
