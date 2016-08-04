@@ -38,13 +38,13 @@ bool HelloWorld::init()
 	loadingBar = static_cast <ui::LoadingBar *>(sceneNode->getChildByName("LoadingBar_1"));
 	this->schedule(schedule_selector(HelloWorld::udpateProgress), 0.5);
 	//获得菜单背景纹理
-	Texture2D * texture = Director::getInstance()->getTextureCache()->addImage("menu_bg.png");
-	Rect rect = Rect::ZERO;
-	rect.size = texture->getContentSize();
+	//Texture2D * texture = Director::getInstance()->getTextureCache()->addImage("menu_bg.png");
+	//Rect rect = Rect::ZERO;
+	//rect.size = texture->getContentSize();
 	//得到精灵帧   通过纹理和大小
-	SpriteFrame * frame = SpriteFrame::createWithTexture(texture, rect);
+	//SpriteFrame * frame = SpriteFrame::createWithTexture(texture, rect);
 	//添加到缓存
-	SpriteFrameCache::getInstance()->addSpriteFrame(frame, "menu_bg");
+	//SpriteFrameCache::getInstance()->addSpriteFrame(frame, "menu_bg");
 
 
 	auto loading = Director::getInstance()->getTextureCache()->addImage("loading_bg2.png");
