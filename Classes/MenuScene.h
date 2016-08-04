@@ -7,6 +7,9 @@
 #include "ui\CocosGUI.h"
 #include "SimpleAudioEngine.h"
 
+#define MUSIC_KEY "music_key"
+#define SOUND_KEY "sound_key"
+
 USING_NS_CC;
 
 using namespace cocostudio;
@@ -24,22 +27,30 @@ public:
 
 	virtual void onEnterTransitionDidFinish();
 	virtual void cleanup();
+	//任务信息
 	void onInfoLayoutClick(Ref * ref);
+	//上面三个按钮
 	void onAddGoldClick(Ref * ref);
 	void onAddZuanShiClick(Ref * ref);
 	void onAddTiLiClick(Ref * ref);
+	//英雄，物品，任务
 	void onOtherBtnClick(Ref * ref);
-
+	//scrll  中的所有精灵
 	bool spriteTouchBegan(Touch * touch, Event* ev);
 	void spriteTouchMove(Touch* touch, Event* ev);
 	void spriteTouchEnd(Touch* touch, Event* ev);
-
+	//签到活动充值按钮回调
 	bool otherTouchBegan(Touch * touch, Event* ev);
 	void otherTouchEnd(Touch* touch, Event* ev);
-
+	//点击精灵回调
 	void downEnd(Node *  node);
 
 	virtual void onExit();
+
+	//英雄列表
+	void onYingXiongLanClick();
+	//背包列表
+	void onBeiBaoLanClick();
 
 public:
 	EventDispatcher * eventDispatcher;
@@ -48,7 +59,12 @@ public:
 	ui::ScrollView * scrollView;
 	EventListenerTouchOneByOne * spriteListener;
 	EventListenerTouchOneByOne * otherListener;
+	EventListenerTouchOneByOne * backEvent;
 	Layout * settingLayout;
+	Layout * yingXiongLayout;
+	ListView * yingXiongList;
+	Layout * beiBaoLayout;
+	ListView * wuPinList;
 };
 
 typedef enum {
@@ -69,8 +85,10 @@ typedef enum {
 	YingXiongLan,
 	BeiBao,
 	RenWu,
-	//左上角的信息
-	SettingRightBack
+	//返回按钮
+	SettingRightBack,
+	YXLeftBack,
+	BBLeftBack
 
 }MenuType;
 
