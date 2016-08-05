@@ -70,7 +70,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	resPaths.push_back("res/audio/");
 	resPaths.push_back("res/beijing/");
 	resPaths.push_back("res/effect/");
-	resPaths.push_back("res/heroos/");
+	resPaths.push_back("res/heros/");
 	resPaths.push_back("res/ui/");
 	resPaths.push_back("audio/");
 	resPaths.push_back("audio/effect");

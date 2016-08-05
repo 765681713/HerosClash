@@ -26,7 +26,6 @@ bool MenuScene::init(){
 	//MainLayout
 	scrollView = static_cast<ui::ScrollView *>(sceneNode->getChildByName("MainLayout"));
 	scrollView->setScrollBarEnabled(false);
-	//Scroll
 	//StartGame  YouXiang   YuanZheng  ShangDian  PaiHang  GongHui YingXiongWu ShiLian
 	auto startGame = scrollView->getChildByName("StartGame");
 	startGame->setTag(MenuType::ScrollOpenGame);
@@ -74,8 +73,7 @@ bool MenuScene::init(){
 	addBtn = static_cast<Button *>(topLayout->getChildByName("add_tili"));
 	addBtn->addClickEventListener(CC_CALLBACK_1(MenuScene::onAddTiLiClick, this));
 
-
-	//弹出背包的监听
+	//qiandao  huodong  监听
 	otherListener = EventListenerTouchOneByOne::create();
 	otherListener->setSwallowTouches(true);
 	otherListener->onTouchBegan = CC_CALLBACK_2(MenuScene::otherTouchBegan, this);
@@ -95,6 +93,7 @@ bool MenuScene::init(){
 	Layout * otherLayout = static_cast<Layout *>(sceneNode->getChildByName("qita_panel"));
 	//otherLayout->setVisible(false);
 	otherLayout->setScale(0);
+	//弹出背包的监听
 	//英雄 任务 物品
 	Layout * itemLayout = static_cast<Layout *>(otherLayout->getChildByName("yingxionglan_panel"));
 	itemLayout->setTag(MenuType::YingXiongLan);
@@ -109,7 +108,6 @@ bool MenuScene::init(){
 	auto otherEvent = EventListenerTouchOneByOne::create();
 	otherEvent->setSwallowTouches(true);
 	otherEvent->onTouchBegan = [](Touch * touch, Event* ev){
-		log("otherEvent->onTouchBegan");
 		auto targt = ev->getCurrentTarget();
 		Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
 		Size size = targt->getContentSize();
@@ -126,13 +124,13 @@ bool MenuScene::init(){
 		Rect rect = Rect(0, 0, size.width, size.height);
 		if (rect.containsPoint(loacatinInNode)){
 			if (otherLayout->getScale() != 0){
-				targt->runAction(RotateBy::create(0.5f, 180));
-				otherLayout->runAction(Sequence::create(ScaleTo::create(0.5f, 0), NULL));
+				targt->runAction(RotateBy::create(0.3f, 180));
+				otherLayout->runAction(Sequence::create(ScaleTo::create(0.3f, 0), NULL));
 			}
 			else{
 				//otherLayout->setVisible(true);
-				targt->runAction(RotateBy::create(0.5f, 180));
-				otherLayout->runAction(ScaleTo::create(0.5f, 1.0f));
+				targt->runAction(RotateBy::create(0.3f, 180));
+				otherLayout->runAction(ScaleTo::create(0.3f, 1.0f));
 			}
 		}
 	};
@@ -144,44 +142,7 @@ bool MenuScene::init(){
 	layer1->setVisible(false);
 	settingLayout = static_cast<Layout *> (layer1->getChildByName("setting_panel"));
 	settingLayout->setVisible(false);
-	CheckBox * yinYueBtn = static_cast<CheckBox *>(settingLayout->getChildByName("yinyue_panel")->getChildByName("yinyue_cb"));
-	UserDefault * user = UserDefault::getInstance();
-	if (user->getBoolForKey(MUSIC_KEY, true)){
-		yinYueBtn->setSelected(true);
-	}
-	else{
-		yinYueBtn->setSelected(false);
-	}
-	yinYueBtn->addClickEventListener([yinYueBtn, user](Ref * ref){
-		if (user->getBoolForKey(MUSIC_KEY, true)){
-			user->setBoolForKey(MUSIC_KEY, false);
-			SimpleAudioEngine::getInstance()->stopBackgroundMusic("main_scene.mp3");
-			yinYueBtn->setSelected(false);
-		}
-		else{
-			user->setBoolForKey(MUSIC_KEY, true);
-			SimpleAudioEngine::getInstance()->playBackgroundMusic("main_scene.mp3", true);
-			yinYueBtn->setSelected(true);
-		}
-	});
-
-	CheckBox * yinXiaoBtn = static_cast<CheckBox *>(settingLayout->getChildByName("yinxiao_panel")->getChildByName("yinxiao_cb"));
-	if (user->getBoolForKey(SOUND_KEY, true)){
-		yinXiaoBtn->setSelected(true);
-	}
-	else{
-		yinXiaoBtn->setSelected(false);
-	}
-	yinXiaoBtn->addClickEventListener([yinXiaoBtn, user](Ref * ref){
-		if (user->getBoolForKey(SOUND_KEY, true)){
-			user->setBoolForKey(SOUND_KEY, false);
-			yinXiaoBtn->setSelected(false);
-		}
-		else{
-			user->setBoolForKey(SOUND_KEY, true);
-			yinXiaoBtn->setSelected(true);
-		}
-	});
+	
 	//英雄列表
 	yingXiongLayout = static_cast<Layout *>(layer1->getChildByName("YingXiongPanel"));
 	yingXiongLayout->setVisible(false);
@@ -286,7 +247,7 @@ void MenuScene::downEnd(Node *  node){
 		break;
 	}
 	case MenuType::SettingRightBack:{
-		auto sequence = Sequence::create(ScaleTo::create(0.4f, 0.0f), CallFunc::create([&](){
+		auto sequence = Sequence::create(ScaleTo::create(0.3f, 0.0f), CallFunc::create([&](){
 			layer1->setVisible(false);
 			settingLayout->setVisible(false);
 			auto node = this->getChildByTag(MenuType::SettingRightBack);
@@ -357,6 +318,7 @@ void MenuScene::downEnd(Node *  node){
 		leftBack->setTag(MenuType::YXLeftBack);
 		eventDispatcher->addEventListenerWithSceneGraphPriority(backEvent->clone(), leftBack);
 		yingXiongLayout->setVisible(true);
+		yingXiongLayout->setScale(0);
 		yingXiongLayout->runAction(Sequence::create(ScaleTo::create(0.2f, 1.0f), CallFunc::create(CC_CALLBACK_0(MenuScene::onYingXiongLanClick, this)), NULL));
 
 		break;
@@ -413,7 +375,7 @@ void MenuScene::downEnd(Node *  node){
 		break;
 	}
 	case MenuType::YXLeftBack:{
-		auto sequence = Sequence::create(ScaleTo::create(0.4f, 0.0f), CallFunc::create([&](){
+		auto sequence = Sequence::create(ScaleTo::create(0.3f, 0.0f), CallFunc::create([&](){
 			layer1->setVisible(false);
 			yingXiongLayout->setVisible(false);
 			auto leftBack = this->getChildByTag(MenuType::YXLeftBack);
@@ -422,11 +384,11 @@ void MenuScene::downEnd(Node *  node){
 			this->removeChild(yingXiongLayout);
 			this->removeChild(layer1);
 		}), NULL);
-		settingLayout->runAction(sequence);
+		yingXiongLayout->runAction(sequence);
 		break;
 	}
 	case MenuType::BBLeftBack:{
-		auto sequence = Sequence::create(ScaleTo::create(0.4f, 0.0f), CallFunc::create([&](){
+		auto sequence = Sequence::create(ScaleTo::create(0.3f, 0.0f), CallFunc::create([&](){
 			layer1->setVisible(false);
 			beiBaoLayout->setVisible(false);
 			auto leftBack = this->getChildByTag(MenuType::BBLeftBack);
@@ -446,13 +408,55 @@ void MenuScene::onInfoLayoutClick(Ref * ref){
 	layer1->setVisible(true);
 	settingLayout->setVisible(true);
 	settingLayout->setScale(0);
-	auto sequence = Sequence::create(ScaleTo::create(0.4f, 1.0f), NULL);
+	auto sequence = Sequence::create(ScaleTo::create(0.3f, 1.0f), NULL);
 	settingLayout->runAction(sequence);
 	//人物详细信息 返回按钮
 	auto node = settingLayout->getChildByName("back_info_icon");
 	node->setTag(MenuType::SettingRightBack);
 	eventDispatcher->addEventListenerWithSceneGraphPriority(backEvent->clone(), node);
+	CheckBox * yinYueBtn = static_cast<CheckBox *>(settingLayout->getChildByName("yinyue_panel")->getChildByName("yinyue_cb"));
+	UserDefault * user = UserDefault::getInstance();
+	if (user->getBoolForKey(MUSIC_KEY, true)){
+		yinYueBtn->setSelected(true);
+	}
+	else{
+		yinYueBtn->setSelected(false);
+	}
+	yinYueBtn->addClickEventListener([yinYueBtn, user](Ref * ref){
+		if (user->getBoolForKey(MUSIC_KEY, true)){
+			user->setBoolForKey(MUSIC_KEY, false);
+			SimpleAudioEngine::getInstance()->stopBackgroundMusic("main_scene.mp3");
+			yinYueBtn->setSelected(false);
+		}
+		else{
+			user->setBoolForKey(MUSIC_KEY, true);
+			SimpleAudioEngine::getInstance()->playBackgroundMusic("main_scene.mp3", true);
+			yinYueBtn->setSelected(true);
+		}
+	});
 
+	CheckBox * yinXiaoBtn = static_cast<CheckBox *>(settingLayout->getChildByName("yinxiao_panel")->getChildByName("yinxiao_cb"));
+	if (user->getBoolForKey(SOUND_KEY, true)){
+		yinXiaoBtn->setSelected(true);
+	}
+	else{
+		yinXiaoBtn->setSelected(false);
+	}
+	yinXiaoBtn->addClickEventListener([yinXiaoBtn, user](Ref * ref){
+		if (user->getBoolForKey(SOUND_KEY, true)){
+			user->setBoolForKey(SOUND_KEY, false);
+			yinXiaoBtn->setSelected(false);
+		}
+		else{
+			user->setBoolForKey(SOUND_KEY, true);
+			yinXiaoBtn->setSelected(true);
+		}
+	});
+
+	Button * loginOut = static_cast<Button *>(settingLayout->getChildByName("login_out_btn"));
+	loginOut->addClickEventListener([](Ref * ref){
+		Director::getInstance()->end();
+	});
 }
 
 void MenuScene::onAddGoldClick(Ref * ref){

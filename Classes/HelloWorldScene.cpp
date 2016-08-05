@@ -53,7 +53,6 @@ bool HelloWorld::init()
 	SpriteFrameCache::getInstance()->addSpriteFrame(SpriteFrame::createWithTexture(loading, r), "loading_bg2");
 
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("loading_bg.plist");
-
 	CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic("main_scene.mp3");
 
 	return true;
