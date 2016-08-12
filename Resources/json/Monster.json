@@ -1,0 +1,50 @@
+{
+    "3001": {
+        "id": 3001,
+        "name": "HeroZhanShi_1",
+        "title": "",
+        "desc": "",
+        "hp": 4,
+        "pAtk": 3,
+        "sAtk": 0,
+        "pDef": 2,
+        "sDef": 0,
+        "round": 2,
+        "aAtk": 2,
+        "double": 0.2,
+        "skill": 10001,
+        "icon": "hero_zhanshi_1_icon.png"
+    },
+    "3002": {
+        "id": 3002,
+        "name": "HeroFaShi_1",
+        "title": "",
+        "desc": "",
+        "hp": 4,
+        "pAtk": 3,
+        "sAtk": 0,
+        "pDef": 2,
+        "sDef": 0,
+        "round": 2,
+        "aAtk": 2,
+        "double": 0.2,
+        "skill": 10001,
+        "icon": "hero_fashi_1_icon.png"
+    },
+    "3003": {
+        "id": 3003,
+        "name": "HeroGongJianShou_1",
+        "title": "",
+        "desc": "",
+        "hp": 4,
+        "pAtk": 3,
+        "sAtk": 0,
+        "pDef": 2,
+        "sDef": 0,
+        "round": 2,
+        "aAtk": 2,
+        "double": 0.2,
+        "skill": 10001,
+        "icon": "hero_gongjianshou_1_icon.png"
+    }
+}

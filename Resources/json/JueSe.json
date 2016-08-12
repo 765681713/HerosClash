@@ -1,0 +1,16 @@
+{
+	"JueSe":{
+		"id":1,
+		"level":1,
+		"exp":"0/100",
+		"icon":"monster_ai_icon_4.png",
+		"name":"冰焰的旋律",
+		"hp":25,
+		"def":2,
+		"mp":25,
+		"heroesCount":15,
+		"act":3,
+		"heroesId":[2001,2002,2003],
+		"wupinId":[4001,4002]
+	}
+}

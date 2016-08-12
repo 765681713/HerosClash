@@ -67,10 +67,14 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	resPaths.push_back("json/");
 	resPaths.push_back("fonts/");
 	resPaths.push_back("res/");
-	resPaths.push_back("res/audio/");
+	resPaths.push_back("res/skillicon/"); 
+	resPaths.push_back("res/wupinicon/");
+	resPaths.push_back("res/monstericon/");
+	resPaths.push_back("res/heroicon/");
 	resPaths.push_back("res/beijing/");
 	resPaths.push_back("res/effect/");
 	resPaths.push_back("res/heros/");
+	resPaths.push_back("res/guanqia/");
 	resPaths.push_back("res/ui/");
 	resPaths.push_back("audio/");
 	resPaths.push_back("audio/effect");

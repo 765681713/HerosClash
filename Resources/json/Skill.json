@@ -1,0 +1,29 @@
+{
+    "1001": {
+        "id": 1001,
+        "name": "item1",
+        "title": "",
+        "icon": "item1.png",
+        "desc": "",
+		"type":"2",
+        "proterties": {}
+    },
+    "1002": {
+        "id": 1002,
+        "title": "",
+        "name": "item2",
+        "icon": "item2.png",
+        "desc": "",
+		"type":"2",
+        "proterties": {}
+    },
+    "1003": {
+        "id": 1003,
+        "title": "",
+        "name": "item2",
+        "icon": "item2.png",
+        "desc": "",
+		"type":"2",
+        "proterties": {}
+    }
+}

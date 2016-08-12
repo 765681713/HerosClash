@@ -47,12 +47,12 @@ bool HelloWorld::init()
 	//SpriteFrameCache::getInstance()->addSpriteFrame(frame, "menu_bg");
 
 
-	auto loading = Director::getInstance()->getTextureCache()->addImage("loading_bg2.png");
-	Rect r = Rect::ZERO;
-	r.size = loading->getContentSize();
-	SpriteFrameCache::getInstance()->addSpriteFrame(SpriteFrame::createWithTexture(loading, r), "loading_bg2");
+	//auto loading = Director::getInstance()->getTextureCache()->addImage("loading_bg2.png");
+	//Rect r = Rect::ZERO;
+	//r.size = loading->getContentSize();
+	//SpriteFrameCache::getInstance()->addSpriteFrame(SpriteFrame::createWithTexture(loading, r), "loading_bg2");
 
-	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("loading_bg.plist");
+	//SpriteFrameCache::getInstance()->addSpriteFramesWithFile("loading_bg.plist");
 	CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic("main_scene.mp3");
 
 	return true;

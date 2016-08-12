@@ -1,0 +1,46 @@
+{
+	
+	"HeroZhanShi_1":{
+		"id":101,
+		"name":"HeroZhanShi_1",
+		"hp":4,
+		"pAtk":3,
+		"sAtk":0,
+		"pDef":2,
+		"sDef":0,
+		"round":2,
+		"aAtk":2,
+		"double"0.2,
+		"skill":10001,
+		"icon":""
+	},
+	"HeroFaShi_1":{
+		"id":102,
+		"name":"HeroFaShi_1",
+		"hp":4,
+		"pAtk":3,
+		"sAtk":0,
+		"pDef":2,
+		"sDef":0,
+		"round":2,
+		"aAtk":2,
+		"double"0.2,
+		"skill":10001,
+		"icon":""
+	},
+	"HeroGongJianShou_1":{
+		"id":103,
+		"name":"HeroGongJianShou_1",
+		"hp":4,
+		"pAtk":3,
+		"sAtk":0,
+		"pDef":2,
+		"sDef":0,
+		"round":2,
+		"aAtk":2,
+		"double"0.2,
+		"skill":10001,
+		"icon":""
+	}
+	
+}

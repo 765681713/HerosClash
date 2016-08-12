@@ -1,0 +1,37 @@
+{
+	"5001":{
+		"id":5001,
+		"level":1,
+		"icon":"monster_ai_icon_1.png",
+		"name":"冰焰的旋律",
+		"hp":25,
+		"def":2,
+		"mp":25,
+		"heroesCount":15,
+		"act":3
+	},
+	"5002":{
+		"id":5002,
+		"level":1,
+		"icon":"monster_ai_icon_2.png",
+		"name":"冰焰的旋律",
+		"hp":25,
+		"def":2,
+		"mp":25,
+		"heroesCount":15,
+		"act":3
+		
+	},
+	"5003":{
+		"id":5003,
+		"level":1,
+		"icon":"monster_ai_icon_3.png",
+		"name":"冰焰的旋律",
+		"hp":25,
+		"def":2,
+		"mp":25,
+		"heroesCount":15,
+		"act":3
+	}
+	
+}

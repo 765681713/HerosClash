@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>frames</key>
+		<dict>
+			<key>hero_mubei/hero_mubei_1.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,0},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_10.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,400},{58,64}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{58,64}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_11.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{58,400},{58,64}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{58,64}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_12.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{116,400},{58,64}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{58,64}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_13.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{174,400},{58,64}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{58,64}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_2.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,200},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_3.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{160,0},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_4.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{160,200},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_5.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{320,0},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_6.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{320,200},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_7.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{480,0},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_8.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{480,200},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+			<key>hero_mubei/hero_mubei_9.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{640,0},{200,160}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{200,160}</string>
+			</dict>
+		</dict>
+		<key>metadata</key>
+		<dict>
+			<key>format</key>
+			<integer>2</integer>
+			<key>textureFileName</key>
+			<string>HeroMuBei.png</string>
+			<key>realTextureFileName</key>
+			<string>HeroMuBei.png</string>
+			<key>size</key>
+			<string>{1024,512}</string>
+		</dict>
+		<key>texture</key>
+		<dict>
+			<key>width</key>
+			<integer>1024</integer>
+			<key>height</key>
+			<integer>512</integer>
+		</dict>
+	</dict>
+</plist>

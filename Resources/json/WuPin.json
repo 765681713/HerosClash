@@ -1,0 +1,42 @@
+{
+    "4001": {
+        "id": 4001,
+        "name": "item1",
+        "desc": "不",
+		"title":"",
+        "icon": "wupin_icon_1.png",
+        "proterties": {
+            "pAtk": 1
+        }
+    },
+    "4002": {
+        "id": 4002,
+		"title":"",
+        "name": "item2",
+        "desc": "走",
+        "icon": "wupin_icon_2.png",
+        "proterties": {
+            "hp": 2
+        }
+    },
+    "4003": {
+        "id": 4003,
+        "name": "item3",
+		"title":"",
+        "desc": "寻",
+        "icon": "wupin_icon_3.png",
+        "proterties": {
+            "sAtk": 1
+        }
+    },
+    "4004": {
+        "id": 4004,
+		"title":"",
+        "name": "item4",
+        "desc": "常路",
+        "icon": "wupin_icon_4.png",
+        "proterties": {
+            "pDef": 1
+        }
+    }
+}

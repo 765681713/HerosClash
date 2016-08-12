@@ -6,6 +6,10 @@
 #include "cocostudio\CocoStudio.h"
 #include "ui\CocosGUI.h"
 #include "SimpleAudioEngine.h"
+#include "GuanQiaScene.h"
+#include "bean\UserInfo.h"
+#include "bean\Heroes.h"
+#include "bean\WuPin.h"
 
 #define MUSIC_KEY "music_key"
 #define SOUND_KEY "sound_key"
@@ -44,7 +48,9 @@ public:
 	void otherTouchEnd(Touch* touch, Event* ev);
 	//点击精灵回调
 	void downEnd(Node *  node);
-
+	void decodeUserInfo();
+	void decodeHeroList();
+	void decodeWuPinList();
 	virtual void onExit();
 
 	//英雄列表
@@ -62,9 +68,12 @@ public:
 	EventListenerTouchOneByOne * backEvent;
 	Layout * settingLayout;
 	Layout * yingXiongLayout;
-	ListView * yingXiongList;
+	ScrollView * yingXiongList;
 	Layout * beiBaoLayout;
-	ListView * wuPinList;
+	ScrollView * wuPinList;
+	std::vector<Heroes *> mHeroes;
+	std::vector<WuPin *> mWuPins;
+	UserInfo * userInfo;
 };
 
 typedef enum {

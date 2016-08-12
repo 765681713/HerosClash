@@ -1,0 +1,44 @@
+#ifndef __BaseHeroes_H__
+#define __BaseHeroes_H__
+
+#include "cocos2d.h"
+
+USING_NS_CC;
+
+class BaseHeroes : public Ref
+{
+public:
+	CREATE_FUNC(BaseHeroes);
+	virtual bool init();
+
+	/*"id": 3001,
+		"name" : "HeroZhanShi_1",
+		"title" : "",
+		"desc" : "",
+		"hp" : 4,
+		"pAtk" : 3,
+		"sAtk" : 0,
+		"pDef" : 2,
+		"sDef" : 0,
+		"round" : 2,
+		"aAtk" : 2,
+		"double" : 0.2,
+		"skill" : 10001*/
+
+	CC_SYNTHESIZE(int, id, Id);
+	CC_SYNTHESIZE(std::string, name, Name);
+	CC_SYNTHESIZE(std::string, title, Title);
+	CC_SYNTHESIZE(std::string, desc, Desc);
+	CC_SYNTHESIZE(int, hp, HP);
+	CC_SYNTHESIZE(int, pAtk, PAtk);//物理攻击
+	CC_SYNTHESIZE(int, sAtk, SAtk);//法术攻击
+	CC_SYNTHESIZE(int, pDef, PDef);//物理防御
+	CC_SYNTHESIZE(int, sDef, SDef);//法术防御
+	CC_SYNTHESIZE(int, round, Round);//蓄力回合数
+	CC_SYNTHESIZE(int, aAtk, AAtk);//每回合攻击增加 （物理和法术都加） 
+	CC_SYNTHESIZE(double, doubleAtk, DoubleAtk);//双倍攻击的概率
+	CC_SYNTHESIZE(int, skill, Skill);//一个技能（ID）
+
+};
+
+#endif
