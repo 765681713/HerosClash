@@ -50,11 +50,17 @@ bool GameScene::init(){
 	mHeroAllCount = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MHeroCountL")->getChildByName("HeroCountAtlas"));
 	monsterAllCount = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MonsterCountL")->getChildByName("monsterCountAtlas"));
 	//¼ÓÔØ×ÊÔ´
+	int index = 0;
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
+		(*heros)->setType((HeroType)index);
+		index++;
 		std::string heroesFileName = String::createWithFormat("%s.plist",(*heros)->getName())->getCString();
 		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(heroesFileName.c_str());
 	}
+	index = 0;
 	for (auto monster = baseMonsters.begin(); monster != baseMonsters.end(); monster++){
+		(*monster)->setType((HeroType)index);
+		index++;
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName())->getCString();
 		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(heroesFileName.c_str());
 	}
@@ -78,11 +84,48 @@ bool GameScene::init(){
 }
 
 void GameScene::initGame(){
+	mHeros.clear();
+	for (int i = 0; i < mUserInfo->getHeroesCount(); i++){
+		int indexY = (int)(CCRANDOM_0_1() * MAX_COLUMN);
+		bool isAdd = false;
+		for (int j = 0; j < MAX_ROW; j++){
+			bool isUse = false;
+			for (auto hero = mHeros.begin(); hero != mHeros.end(); hero++){
+				if ((*hero)->getIndexX() == j && (*hero)->getIndexY() == indexY && (*hero)->getIsUse()){
+					isUse = true;
+					break;
+				}
+			}
+			if (isUse){
+				continue;
+			}
+			HeroObj * hObj = HeroObj::create();
+			hObj->retain();
+			//
+			//
+			//
+			int index = (int)(CCRANDOM_0_1() * 3);
+			hObj->setHero(baseHeroes.at(index));
+			isAdd = true;
+			mHeros.push_back(hObj);
+		}
+		if (!isAdd){
+			i--;
+		}
+	}
+
+	monsterHeros.clear();
+	for (int i = 0; i < monstersAI->getHeroesCount(); i++){
+		
+		
+	}
+
 	auto heroZhanShi1 = CSLoader::createNode("HeroZhanShi_1.csb");
 	heroZhanShi1->setPosition(580, 450);
 	gameSceneLayout->addChild(heroZhanShi1);
 
 	ActionTimeline * action1 = CSLoader::createTimeline("HeroZhanShi_1.csb");
+	action1->setTag(1);
 	heroZhanShi1->runAction(action1);
 	action1->play("stand", true);
 }

@@ -10,6 +10,8 @@
 #include "bean\AI.h"
 #include "bean\HeroObj.h"
 //#include "editor-support/cocostudio/ActionTimeline/CCActionTimeline.h"
+#define MAX_ROW  8
+#define MAX_COLUMN 8
 
 USING_NS_CC;
 using namespace ui;
@@ -34,8 +36,8 @@ public:
 	std::vector<Monster *> baseMonsters;
 	AI * monstersAI;
 
-	//std::vector<HeroObj *> mHeros;
-	//std::vector<HeroObj *> monsterHeros;
+	std::vector<HeroObj *> mHeros;
+	std::vector<HeroObj *> monsterHeros;
 
 	Node * gameSceneNode;//node
 	Layout * gameSceneLayout;//”Œœ∑≥°æ∞
