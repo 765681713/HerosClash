@@ -65,9 +65,9 @@ public:
 	int mCurrentIndexPage = 0;
 	int mGuanQiaCount = 2;//过关的数量
 
-	//static UserInfo * mInfo;
+	UserInfo * mInfo;
 	//static std::vector<Heroes *> mHeroes;
-	CC_SYNTHESIZE(UserInfo * ,mInfo,UserInfo);
+	//CC_SYNTHESIZE(UserInfo * ,mInfo,UserInfo);
 	CC_SYNTHESIZE(std::vector<Heroes *>,mHeroes,Heroes);//所有的英雄
 	std::vector<WuPin *> mWuPins;
 	std::vector<Monster *> mCurrentMonsters;

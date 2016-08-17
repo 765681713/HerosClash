@@ -263,6 +263,13 @@ void MenuScene::decodeHeroList(){
 				const rapidjson::Value & doubleAtk = heroValue["double"];
 				const rapidjson::Value & skill = heroValue["skill"];
 				const rapidjson::Value & icon = heroValue["icon"];
+				if (heroValue.HasMember("isBoss")){
+					bool isBoss = heroValue["isBoss"].GetBool();
+					hero->setType(isBoss ? HeroType::Boss : HeroType::Hero);
+				}
+				else{
+					hero->setType(HeroType::Hero);
+				}
 				hero->setId(id.GetInt());
 				hero->setTitle(title.GetString());
 				hero->setName(name.GetString());

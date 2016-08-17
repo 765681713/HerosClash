@@ -3,7 +3,7 @@
 Scene * GuanQiaScene::createScene(UserInfo * info, std::vector<Heroes *> heroes){
 	auto scene = Scene::create();
 	auto layer = GuanQiaScene::create();
-	layer->setUserInfo(info);
+	layer->mInfo = info;
 	layer->setHeroes(heroes);
 	scene->addChild(layer);
 	return scene;
@@ -254,6 +254,13 @@ void GuanQiaScene::decodeMonsterJson(){
 				const rapidjson::Value & doubleAtk = monsterValue["double"];
 				const rapidjson::Value & skill = monsterValue["skill"];
 				const rapidjson::Value & icon = monsterValue["icon"];
+				if (monsterValue.HasMember("isBoss")){
+					bool isBoss = monsterValue["isBoss"].GetBool();
+					monster->setType(isBoss ? HeroType::Boss : HeroType::Hero);
+				}
+				else{
+					monster->setType(HeroType::Hero);
+				}
 				monster->setId(id.GetInt());
 				monster->setTitle(title.GetString());
 				monster->setName(name.GetString());

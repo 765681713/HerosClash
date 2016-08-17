@@ -6,12 +6,8 @@
 USING_NS_CC;
 
 typedef enum {
-	Hero1,
-	Hero2,
-	Hero3,
-	Boss1,
-	Boss2
-
+	Hero,
+	Boss
 }HeroType;
 
 class BaseHeroes : public Ref

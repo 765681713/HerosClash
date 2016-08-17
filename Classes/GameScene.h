@@ -10,8 +10,6 @@
 #include "bean\AI.h"
 #include "bean\HeroObj.h"
 //#include "editor-support/cocostudio/ActionTimeline/CCActionTimeline.h"
-#define MAX_ROW  8
-#define MAX_COLUMN 8
 
 USING_NS_CC;
 using namespace ui;
@@ -21,23 +19,54 @@ using namespace timeline;
 class GameScene : public Layer
 {
 public:
-	CREATE_FUNC(GameScene);
+	//CREATE_FUNC(GameScene);
+	static Scene * createScene(UserInfo * info, std::vector<Heroes *> heroes, std::vector<Monster *> monsters, AI * ai);
+
 	virtual bool init();
+	virtual void onEnterTransitionDidFinish();
+
 	void initGame();
-	static Scene * createScene(UserInfo * info, std::vector<Heroes *> heroes,std::vector<Monster *> monsters,AI * ai);
+	bool initNotRepeatForHero(int indexX, int indexY, int id);
+	bool initNotRepeatForMonster(int indexX, int indexY, int id);
+	void addBoss(int index, int indexX, int indexY, int posionX, int posionY, BaseHeroes * heroes);
+	void heroEntry();
+	void monsterEntry();
+	void mHeroPrepareAndDef(); 
+	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
+	void mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
+	void swapHeroPosition(HeroObj * from, HeroObj * to);
+
+	bool onTouchBegan(Touch * pTouch, Event * pEvent);
+	void onTouchMoved(Touch * pTouch, Event * pEvent);
+	void onTouchEnded(Touch * pTouch, Event * pEvent);
+	void onLongTouchDown(float delay);
 
 
-
-
-
+	virtual void onExit();
 public:
+	bool isInit;
+	bool isActionRuning = false;
+	bool isLongPress = false;
+	
+	const int currentHeroTag = 520;
+	int touchDownY;
+	int longTouchDownX;
+	int longTouchDownY;
+
+	HeroObj * mCurrentHero = nullptr;
 	UserInfo * mUserInfo;
 	std::vector<Heroes *> baseHeroes;
 	std::vector<Monster *> baseMonsters;
+	std::vector<std::vector<HeroObj * >> prepareHeroes;
 	AI * monstersAI;
 
-	std::vector<HeroObj *> mHeros;
-	std::vector<HeroObj *> monsterHeros;
+	int existHeroCount = 0;
+	int existMonsterCount = 0;
+
+	//std::vector<HeroObj *> mHeros;
+	//std::vector<HeroObj *> monsterHeros;
+	HeroObj * mHeros[MAX_ROW * MAX_COLUMN];
+	HeroObj * monsterHeros[MAX_ROW * MAX_COLUMN];
 
 	Node * gameSceneNode;//node
 	Layout * gameSceneLayout;//游戏场景
@@ -60,17 +89,10 @@ public:
 	TextAtlas * secTimeAtlas;//剩余时间
 	TextAtlas * mActCountAtlas;//行动次数
 	TextAtlas * monsterActCountAtlas;//行动次数
+
+	EventDispatcher * eventDispatcher;
 protected:
 	Size mSceneSize;
 };
-
-typedef enum {
-	Stand,
-	Prepare,
-	Run,
-	Attack,
-	Hit,
-	Death
-}HeroActionType;
 
 #endif
