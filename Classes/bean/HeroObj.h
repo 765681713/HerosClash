@@ -44,8 +44,6 @@ public:
 	int getIndexY();
 	void setIndexY(int indexY);
 	int getId();
-	//void setId(int id);
-	//void setActionTimelineID(int id);
 	Node * getMCurrentNode();
 	void addNode(Layout * layout, Node * node);
 	void setAction(ActionTimeline * action);
@@ -53,6 +51,14 @@ public:
 	void updateNode();
 	HeroActionType getActionType();
 	void removeNode();
+	HeroObj * cloneThis(int indexX);
+
+	void prepare(bool showNum);
+	void def();
+	void attact();
+
+public :
+	bool isClone = false;
 
 private:
 	Layout * mCurrentLayout;

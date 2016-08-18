@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>frames</key>
+		<dict>
+			<key>effect/def_round_yellow_1.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{630,210},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_2.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{630,290},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_3.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{630,370},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_4.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{620,450},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_5.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{620,530},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_6.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{760,590},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_7.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{900,590},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_8.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{200,610},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/def_round_yellow_9.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,620},{140,80}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{140,80}</string>
+			</dict>
+			<key>effect/pre_bottom_xing_1.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,0},{390,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{390,210}</string>
+			</dict>
+			<key>effect/pre_bottom_xing_2.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{390,0},{390,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{390,210}</string>
+			</dict>
+			<key>effect/pre_bottom_xing_3.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{780,0},{390,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{390,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_1.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,210},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_2.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{210,210},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_3.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{420,210},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_4.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{770,390},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_5.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{0,410},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<false />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_6.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{200,410},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+			<key>effect/pre_center_xing_7.png</key>
+			<dict>
+				<key>frame</key>
+				<string>{{410,410},{200,210}}</string>
+				<key>offset</key>
+				<string>{0,0}</string>
+				<key>rotated</key>
+				<true />
+				<key>sourceSize</key>
+				<string>{200,210}</string>
+			</dict>
+		</dict>
+		<key>metadata</key>
+		<dict>
+			<key>format</key>
+			<integer>2</integer>
+			<key>textureFileName</key>
+			<string>EffectBg.png</string>
+			<key>realTextureFileName</key>
+			<string>EffectBg.png</string>
+			<key>size</key>
+			<string>{1024,1024}</string>
+		</dict>
+		<key>texture</key>
+		<dict>
+			<key>width</key>
+			<integer>1024</integer>
+			<key>height</key>
+			<integer>1024</integer>
+		</dict>
+	</dict>
+</plist>

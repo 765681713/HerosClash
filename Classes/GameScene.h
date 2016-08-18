@@ -40,13 +40,16 @@ public:
 	void onTouchMoved(Touch * pTouch, Event * pEvent);
 	void onTouchEnded(Touch * pTouch, Event * pEvent);
 	void onLongTouchDown(float delay);
-
+	
+	//AI
+	void aiSchedule(float delay);
 
 	virtual void onExit();
 public:
 	bool isInit;
 	bool isActionRuning = false;
 	bool isLongPress = false;
+	bool isAiRound;
 	
 	const int currentHeroTag = 520;
 	int touchDownY;

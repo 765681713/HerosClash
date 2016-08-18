@@ -62,9 +62,13 @@ bool GameScene::init(){
 	gameSceneListener->onTouchMoved = CC_CALLBACK_2(GameScene::onTouchMoved, this);
 	gameSceneListener->onTouchEnded = CC_CALLBACK_2(GameScene::onTouchEnded, this);
 	eventDispatcher->addEventListenerWithSceneGraphPriority(gameSceneListener, gameSceneLayout);
-
+	//
+	isAiRound = false;
+	schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
 	//加载资源
+
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist");
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName())->getCString();
 		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(heroesFileName.c_str());
@@ -83,6 +87,8 @@ bool GameScene::init(){
 			monsterHeros[i*MAX_ROW + j] = nullptr;
 		}
 	}
+
+
 	return true;
 }
 
@@ -116,7 +122,7 @@ void GameScene::heroEntry(){
 					auto hero = CSLoader::createNode(nodeName.c_str());
 					hero->setPosition(-60, hObj->getpositionY());
 					hero->setScaleX(-1);
-					hObj->addNode(gameSceneLayout,hero);
+					hObj->addNode(gameSceneLayout, hero);
 					//出场动画
 					ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
 					hero->runAction(action);
@@ -191,7 +197,7 @@ void GameScene::monsterEntry(){
 					std::string nodeName = String::createWithFormat("%s.csb", monster->getName().c_str())->getCString();
 					auto hero = CSLoader::createNode(nodeName.c_str());
 					hero->setPosition(mSceneSize.width + 60, hObj->getpositionY());
-					hObj->addNode(gameSceneLayout,hero);
+					hObj->addNode(gameSceneLayout, hero);
 					//出场动画
 					ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
 					hero->runAction(action);
@@ -277,8 +283,8 @@ bool GameScene::initNotRepeatForHero(int indexX, int indexY, int id){
 					return false;
 				}
 			}
-			
-			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY]!= nullptr){
+
+			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
 				if (id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
 					id == mHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 					return false;
@@ -292,13 +298,13 @@ bool GameScene::initNotRepeatForHero(int indexX, int indexY, int id){
 					return false;
 				}
 			}
-			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY]!= nullptr){
+			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
 				if (id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
 					id == mHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 					return false;
 				}
 			}
-			if (mHeros[indexX * MAX_ROW + nextNextY] != nullptr &&  mHeros[indexX * MAX_ROW + nextY]!= nullptr){
+			if (mHeros[indexX * MAX_ROW + nextNextY] != nullptr &&  mHeros[indexX * MAX_ROW + nextY] != nullptr){
 				if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
 					id == mHeros[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
 					return false;
@@ -330,7 +336,7 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 				return false;
 			}
 		}
-		
+
 		if (indexY == 0){
 			if (monsterHeros[indexX * MAX_ROW + nextNextY] == nullptr || monsterHeros[indexX * MAX_ROW + nextY] == nullptr){
 				return true;
@@ -347,7 +353,7 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 					return false;
 				}
 			}
-			
+
 			if (monsterHeros[indexX * MAX_ROW + nextNextY] == nullptr || monsterHeros[indexX * MAX_ROW + nextY] == nullptr){
 				return true;
 			}
@@ -357,7 +363,7 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 			}
 		}
 		else if (indexY == MAX_ROW - 1){
-			if (monsterHeros[indexX * MAX_ROW + lastLastY] == nullptr || monsterHeros[indexX * MAX_ROW + lastY]==nullptr){
+			if (monsterHeros[indexX * MAX_ROW + lastLastY] == nullptr || monsterHeros[indexX * MAX_ROW + lastY] == nullptr){
 				return true;
 			}
 			if (id == monsterHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
@@ -387,20 +393,20 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 					return false;
 				}
 			}
-			if (monsterHeros[indexX * MAX_ROW + lastLastY] != nullptr && monsterHeros[indexX * MAX_ROW + lastY] != nullptr ){
+			if (monsterHeros[indexX * MAX_ROW + lastLastY] != nullptr && monsterHeros[indexX * MAX_ROW + lastY] != nullptr){
 				if (id == monsterHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
 					id == monsterHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 					return false;
 				}
 			}
-			
+
 			if (monsterHeros[indexX * MAX_ROW + nextNextY] != nullptr && monsterHeros[indexX * MAX_ROW + nextY] != nullptr){
 				if (id == monsterHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
 					id == monsterHeros[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
 					return false;
 				}
 			}
-			
+
 		}
 
 		return true;
@@ -422,7 +428,7 @@ void GameScene::addBoss(int index, int indexX, int indexY, int posionX, int posi
 	hero->setPosition(-120, hObj->getpositionY());
 	hero->setScaleX(-2);
 	hero->setScaleY(2);
-	hObj->addNode(gameSceneLayout,hero);
+	hObj->addNode(gameSceneLayout, hero);
 	//出场动画
 	ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
 	hero->runAction(action);
@@ -438,7 +444,7 @@ void GameScene::addBoss(int index, int indexX, int indexY, int posionX, int posi
 }
 
 bool GameScene::onTouchBegan(Touch * pTouch, Event * pEvent){
-	if (isActionRuning){
+	if (isActionRuning || isAiRound){
 		return false;
 	}
 	Vec2 touch = pTouch->getLocation();
@@ -526,6 +532,9 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 }
 
 void GameScene::onLongTouchDown(float delay){
+	if (isAiRound){
+		return;
+	}
 	isLongPress = true;
 	int posX = abs(longTouchDownX - (hStartX + heroW / 2));
 	int posY = abs(longTouchDownY - (hStartY + heroH / 2));
@@ -533,27 +542,27 @@ void GameScene::onLongTouchDown(float delay){
 	int indexY = posY / heroH;
 	if (indexX >= 0 && indexX < MAX_COLUMN && indexY >= 0 && indexY < MAX_ROW){
 		HeroObj* hero = mHeros[indexX * MAX_ROW + indexY];
-		if (hero != nullptr &&( hero->getActionType() == HeroActionType::Stand || hero->getActionType() == HeroActionType::Def)){
+		if (hero != nullptr && (hero->getActionType() == HeroActionType::Stand || hero->getActionType() == HeroActionType::Def)){
 			//ActionTimeline * action = static_cast<ActionTimeline *>(hero->getMNode()->getActionByTag(hero->getID()));
 			//action->play("hit",false);
 			//action->setLastFrameCallFunc([=](){
 			gameSceneLayout->removeChild(mHeros[indexX * MAX_ROW + indexY]->getMCurrentNode(), true);
-				mHeros[indexX * MAX_ROW + indexY] = nullptr;
-				for (int i = indexX + 1; i < MAX_COLUMN; i++){
-					if (mHeros[i * MAX_ROW + indexY] != nullptr){
-						HeroObj * mHero = mHeros[i * MAX_ROW + indexY];
-						mHero->setIndexX(i-1);
-						mCurrentHero->updateNode();
-						mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
-						mHeros[(i - 1) * MAX_ROW + indexY] = mHero;
-						mHeros[i * MAX_ROW + indexY] = nullptr;
-					}
-					else{
-						break;
-					}
+			mHeros[indexX * MAX_ROW + indexY] = nullptr;
+			for (int i = indexX + 1; i < MAX_COLUMN; i++){
+				if (mHeros[i * MAX_ROW + indexY] != nullptr){
+					HeroObj * mHero = mHeros[i * MAX_ROW + indexY];
+					mHero->setIndexX(i - 1);
+					mHero->updateNode();
+					mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+					mHeros[(i - 1) * MAX_ROW + indexY] = mHero;
+					mHeros[i * MAX_ROW + indexY] = nullptr;
 				}
-				//判断 准备和防御
-				mHeroPrepareAndDef();
+				else{
+					break;
+				}
+			}
+			//判断 准备和防御
+			mHeroPrepareAndDef();
 
 			//});
 			hero = nullptr;
@@ -583,6 +592,8 @@ void GameScene::mHeroPrepareAndDef(){
 						allHHeroes.push_back(hHeroes);
 					}
 					hHeroes.clear();
+					id = hero->getHero()->getId();
+					hHeroes.push_back(hero);
 				}
 			}
 			else{
@@ -590,9 +601,12 @@ void GameScene::mHeroPrepareAndDef(){
 					allHHeroes.push_back(hHeroes);
 				}
 				hHeroes.clear();
-				break;
 			}
-		}	
+		}
+		if (hHeroes.size() >= 3){
+			allHHeroes.push_back(hHeroes);
+		}
+		hHeroes.clear();
 	}
 	for (int i = 0; i < MAX_COLUMN; i++){//列
 		std::vector<HeroObj *> vHeroes;
@@ -601,9 +615,13 @@ void GameScene::mHeroPrepareAndDef(){
 			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand){
 				if (vHeroes.empty()){
 					id = hero->getHero()->getId();
+					//log(" hero->getHero()->getId() = %d ", hero->getHero()->getId());
+					//log(" hero->getId() = %d ", hero->getId());
 					vHeroes.push_back(hero);
 					continue;
 				}
+				//log(" hero->getHero()->getId() = %d ", hero->getHero()->getId());
+				//log(" hero->getId() = %d ", hero->getId());
 				if (id == hero->getHero()->getId()){
 					vHeroes.push_back(hero);
 				}
@@ -612,6 +630,8 @@ void GameScene::mHeroPrepareAndDef(){
 						allVHeroes.push_back(vHeroes);
 					}
 					vHeroes.clear();
+					id = hero->getHero()->getId();
+					vHeroes.push_back(hero);
 				}
 			}
 			else{
@@ -619,50 +639,118 @@ void GameScene::mHeroPrepareAndDef(){
 					allVHeroes.push_back(vHeroes);
 				}
 				vHeroes.clear();
-				break;
 			}
 		}
+		if (vHeroes.size() >= 3){
+			allVHeroes.push_back(vHeroes);
+		}
+		vHeroes.clear();
 	}
 	if (allHHeroes.empty() && allVHeroes.empty()){
 		return;
 	}
 	else if (!allHHeroes.empty() && !allVHeroes.empty()){
 		//筛选重复的hero
+		std::vector<HeroObj *> repeatHero;
+		for (auto hHeroes : allHHeroes){
+			for (auto hHero : hHeroes){
+				for (auto vHeroes : allVHeroes){
+					for (auto vHero : vHeroes){
+						if (hHero->getId() == vHero->getId()){
+							repeatHero.push_back(hHero);
+							break;
+						}
+					}
+				}
+			}
+		}
+		log(" repeatHero = %d ", repeatHero.size());
+		if (repeatHero.empty()){
+			mHeroDefAction(allVHeroes);
+			mHeroPrepareAction(allHHeroes);
+		}
+		else{
+			//有重复的就多填一个   总数量减一
+			for (auto hero : repeatHero){
+				for (int i = hero->getIndexX() + 1; i < MAX_COLUMN; i++){
+					int index = i*MAX_COLUMN + hero->getIndexY();
+					if (mHeros[index] == nullptr){
+						HeroObj * h = hero->cloneThis(i);
+						for (auto& vHeroes : allVHeroes){//带上&  代表我要修改列表中的值  等同于 begin end
+							for (auto vHero = vHeroes.begin(); vHero != vHeroes.end(); vHero++){
+								if (hero->getId() == (*vHero)->getId()){
+									vHeroes.erase(vHero);
+									vHeroes.push_back(h);
+									mHeros[index] = h;
+									//删除原数组中的  添加一个后面的
+									break;
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+			mHeroPrepareAction(allHHeroes);
+			mHeroDefAction(allVHeroes);
 
+			////超出界面  处理  从后面删一个 再填
+			//for (int i = MAX_COLUMN -1; i >= 0; i--){
+			//	int index = i*MAX_COLUMN + hero->getIndexY();
+			//	HeroObj * h = mHeros[index];
+			//	if (h->getId() != hero->getId() && h->getActionType() == HeroActionType::Prepare){
+			//		h->getMCurrentNode()->removeFromParentAndCleanup(true);
+			//		h = nullptr;
+			//		mHeros[index] = nullptr;
+			//		HeroObj * heorItem = hero->cloneThis(i);
+			//		for (auto vHeroes : allVHeroes){
+			//			for (auto vHero = vHeroes.begin(); vHero != vHeroes.end(); vHero++){
+			//				if (hero->getId() == (*vHero)->getId()){
+			//					vHeroes.erase(vHero);
+			//					vHeroes.push_back(heorItem);
+			//					break;
+			//				}
+			//			}
+			//		}
+			//		break;
+			//	}
+			//}
+		}
 
-		//mHeroDefAction(allVHeroes);
-		//mHeroPrepareAction(allHHeroes);
+	//}
 	}
-	else if(!allHHeroes.empty()){
+	else if (!allHHeroes.empty()){
+		//log(" allHHeroes ", allHHeroes.size());
 		mHeroPrepareAction(allHHeroes);
 	}
-	else if(!allVHeroes.empty()){
+	else if (!allVHeroes.empty()){
+		//log(" allVHeroes ", allVHeroes.size());
 		mHeroDefAction(allVHeroes);
 	}
 }
 
 void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
-	int indexX ;
+	int indexX;
 	if (to != nullptr && to->getActionType() == HeroActionType::Def){
 		return;
 	}
-	else if(to != nullptr){
+	else if (to != nullptr){
 		indexX = from->getIndexX();
 		from->setIndexX(to->getIndexX());
 		from->updateNode();
-		mHeros[to->getId()] = from;
+		mHeros[from->getId()] = from;
 		to->setIndexX(indexX);
 		to->updateNode();
-		mHeros[from->getId()] = to;
-		from->getMCurrentNode()->runAction(MoveTo::create(0.1f* (indexX - from->getIndexX()), Vec2(from->getpositionX(), from->getpositionY())));
-		to->getMCurrentNode()->runAction(MoveTo::create(0.1f* (indexX - from->getIndexX()), Vec2(to->getpositionX(), to->getpositionY())));
+		mHeros[to->getId()] = to;
+		from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
+		to->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(-heroW, 0)));
 	}
 	else{
 		mHeros[from->getId()] = nullptr;
 		from->setIndexX(from->getIndexX() - 1);
 		from->updateNode();
 		mHeros[from->getId()] = from;
-		from->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(from->getpositionX(), from->getpositionY())));
+		from->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(heroW, 0)));
 	}
 }
 
@@ -674,22 +762,18 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 			if ((i + 1) % 3 == 0){//3个为一组
 				for (int j = 0; j < 3; j++){
 					//准备动画
-					heroes[j]->runAction(HeroActionType::Prepare);
-					if (j == 1){
-						Node * node = heroes[j]->getMCurrentNode();
-						//添加进度条和攻击数字
-					}
+					heroes[j]->prepare(j == 1);
 				}
 				//准备好后 移动
 				for (int i = heroes[0]->getIndexX() - 1; i >= 0; i--){
 					HeroObj * obj = mHeros[i * MAX_ROW + heroes[0]->getIndexY()];
 					if (obj != nullptr && obj->getActionType() == HeroActionType::Prepare  //pre 并且相同
-						&& strcmp(obj->getHero()->getName().c_str(), heroes[0]->getHero()->getName().c_str())){
+						&& obj->getHero()->getId() == heroes[0]->getHero()->getId()){
 						for (int i = 0; i < 3; i++){
 							HeroObj * heroItem = heroes[i];
 							heroItem->getMCurrentNode()->runAction(Sequence::create(MoveTo::create(0.3f,
-								Vec2(heroItem->getpositionX() + 3 * heroW, heroItem->getpositionY())),
-							CallFuncN::create([=](Node * node){
+								Vec2(heroItem->getpositionX() + heroW, heroItem->getpositionY())),
+								CallFuncN::create([=](Node * node){
 								gameSceneLayout->removeChild(node);
 								mHeros[heroItem->getId()] = nullptr;
 								//最后一个移动 判断后面有没有hero
@@ -727,27 +811,15 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 
 void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
 	for (auto vHeroes = allVHeroes.begin(); vHeroes != allVHeroes.end(); vHeroes++){
-		for (unsigned int i = 0; i < (*vHeroes).size(); i++){
-			HeroObj * hero = (*vHeroes).at(i);
-			auto node = CSLoader::createNode("HeroMuBei.csb");
-			node->setPosition(hero->getpositionX(), hero->getpositionY());
-			node->setScaleX(-1);
-			hero->removeNode();
-			hero->addNode(gameSceneLayout,node);
-			//防御动画
-			ActionTimeline * action = CSLoader::createTimeline("HeroMuBei.csb");
-			action->setTag(hero->getId());
-			node->runAction(action);
-			hero->setAction(action);
-			hero->runAction(HeroActionType::Def);
-			hero->getHero()->setPDef(hero->getHero()->getPDef() * 2);//增加防御
-
+		for (auto hero : (*vHeroes)){
+			hero->def();
+		}
+		for (auto hero : (*vHeroes)){
 			//防御后移动
 			if (hero->getIndexX() == 0){
 				break;
 			}
 			else{
-				//HeroObj * swapHero;
 				for (int i = hero->getIndexX(); i > 0; i--){
 					swapHeroPosition(mHeros[i * MAX_ROW + hero->getIndexY()], mHeros[(i - 1) * MAX_ROW + hero->getIndexY()]);
 				}
@@ -756,7 +828,9 @@ void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
 	}
 }
 
-
+void GameScene::aiSchedule(float delay){
+	//log("aiSchedule");
+}
 
 
 
@@ -777,4 +851,5 @@ void GameScene::onExit(){
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
+	unschedule(schedule_selector(GameScene::aiSchedule));
 }
