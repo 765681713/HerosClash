@@ -429,7 +429,38 @@ void MenuScene::downEnd(Node *  node){
 		break;
 	}
 	case MenuType::ScrollYouXiang:{
-
+		auto youXiangNode = CSLoader::createNode("YouXiangLayer.csb");
+		auto youXiangLayout = static_cast<Layout *>(youXiangNode->getChildByName("YouXiangLBG")->getChildByName("YouXiangL"));
+		//auto youXiangItemLayout = static_cast<Layout *>(CSLoader::createNode("YouXiangItem.csb")->getChildByName("YingXiongL"));
+		auto youXiangList = static_cast<ListView *>(youXiangLayout->getChildByName("YouXiangList"));
+		auto yXBack = static_cast<Button *>(youXiangLayout->getChildByName("YouXiangBackBtn"));
+		yXBack->addClickEventListener([this,youXiangNode](Ref * ref){
+			this->removeChild(youXiangNode);
+		});
+		Size listSize = youXiangList->getContentSize();
+		int contantH = (5 + 120) * 3;
+		contantH = contantH > listSize.height ? contantH : listSize.height;
+		Size size;
+		size.height = contantH;
+		size.width = listSize.width;
+		youXiangList->setInnerContainerSize(size);
+		youXiangList->setClippingEnabled(true);
+		youXiangList->setScrollBarEnabled(false);
+		for (int i = 0; i < 3; i++){
+			auto itemNode = CSLoader::createNode("YouXiangItem.csb");
+			auto itemLayout = static_cast<Layout *>(itemNode->getChildByName("YingXiongL"));
+			//auto icon = static_cast<CheckBox *>(itemLayout->getChildByName("YouXiangIcon"));
+			//auto title = static_cast<Text *>(itemLayout->getChildByName("YouXiangTitle"));
+			//auto sendName = static_cast<Text *>(itemLayout->getChildByName("YouXiangSendName"));
+			//auto time = static_cast<Text *>(itemLayout->getChildByName("YouXiangTime"));
+			Layout * layout = Layout::create();
+			itemNode->setPosition(Vec2(15,-10));
+			layout->setContentSize(itemNode->getContentSize());
+			layout->addChild(itemNode);
+			
+			youXiangList->pushBackCustomItem(layout);
+		}
+		this->addChild(youXiangNode);
 		break;
 	}
 	case MenuType::ScrollShiLianu:{
@@ -677,28 +708,17 @@ void MenuScene::onYingXiongLanClick(){
 		auto node = CSLoader::createNode("HeroListItemLayer.csb");
 		Layout * itemLayout = static_cast<Layout *>(node->getChildByName("HeroListItemL"));
 		Text * heroLevel = static_cast<Text *>(itemLayout->getChildByName("HeroLevel"));
-		//auto h = mHeroes.at(i);
-		//int level = h->getLevel();
-		//log("level = %d",level);
-		//log(" %s %s %s", h->getName(), h->getDesc(), h->getTitle());
+		auto h = mHeroes.at(i);
+		std::string level = String::createWithFormat("LV%d", h->getLevel())->getCString();
+		std::string title = mHeroes.at(i)->getTitle();
+		heroLevel->setString(level);
+		Text * heroName = static_cast<Text *>(itemLayout->getChildByName("HeroName"));
+		heroName->setString(title);
 
-		//std::string level = String::createWithFormat("%d", level)->getCString();
-		//std::string title = mHeroes.at(i)->getTitle();
-		//log("  ----- %s  ===== %s",level,title);
-		//heroLevel->setString(level);
-		//Text * heroName = static_cast<Text *>(itemLayout->getChildByName("HeroName"));
-		//heroName->setString(title);
-
-		//Layout * iconLayout = static_cast<Layout *>(node->getChildByName("HeroIconL"));
-		//ImageView * icon = static_cast<ImageView *>(iconLayout->getChildByName("HeroIcon"));
-		//icon->loadTexture(mHeroes.at(i)->getName());
+		Layout * iconLayout = static_cast<Layout *>(itemLayout->getChildByName("HeroIconL"));
+		ImageView * icon = static_cast<ImageView *>(iconLayout->getChildByName("HeroIcon"));
+		icon->loadTexture(mHeroes.at(i)->getIcon());
 		node->setScale(1.7f);
-		/*if (i % 2 == 0){
-			node->setPosition(Vec2(0, contantH - (i / 2 + 1)* (20 + 170)));
-		}
-		else{
-			node->setPosition(Vec2(340 + 20, contantH - ((i - 1) / 2 + 1)* (20 + 170)));
-		}*/
 		node->setPosition(Vec2(i % 2 * (340 + 20), contantH - 170 - (int)(i / 2) * (20 + 170)));
 		yingXiongList->addChild(node);
 	}
@@ -717,6 +737,7 @@ void MenuScene::onBeiBaoLanClick(){
 	wuPinList->setClippingEnabled(true);
 	wuPinList->setScrollBarEnabled(false);
 	for (int i = 0; i < wupinSize; i++){
+		WuPin * item = mWuPins.at(i);
 		Layout * itemLayout = Layout::create();
 		itemLayout->setBackGroundImage("wupin_icon_bg.png");
 		itemLayout->setContentSize(Size(80, 80));
@@ -727,7 +748,7 @@ void MenuScene::onBeiBaoLanClick(){
 		wupinIcon->setContentSize(Size(60, 60));
 		wupinIcon->setAnchorPoint(Vec2(0.5, 0.5));
 		wupinIcon->setPosition(Vec2(40,40));
-		wupinIcon->loadTexture("wupin_icon_4.png");
+		wupinIcon->loadTexture(item->getIcon());
 		itemLayout->addChild(wupinIcon);
 		itemLayout->setPosition(Vec2(i % 5 * (80 + 20), contantH - 80 - (80 + 20) * (int)(i / 5)));
 		wuPinList->addChild(itemLayout);

@@ -964,6 +964,10 @@ void GameScene::aiSchedule(float delay){
 	}
 	secTimeAtlas->setString(String::createWithFormat("%d",secCurrentTime)->getCString());
 
+	if (isAiRound){
+		
+
+	}
 }
 
 void GameScene::heroCountLCallBack(Ref * ref){

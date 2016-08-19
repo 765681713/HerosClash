@@ -43,7 +43,7 @@ public:
 	void preBack(Ref *  node);
 
 	//英雄列表点击事件void addEventListenerListView(Ref* target, SEL_ListViewEvent selector);
-	void onItemClickListener(Ref * pSender, ListView::EventType type);
+	//void onItemClickListener(Ref * pSender, ListView::EventType type);
 	//void onItemClickListener(Ref * pSender);
 
 	void removeListener();
@@ -63,7 +63,7 @@ public:
 
 	Layout * mGuanQiaBiaoZhi;
 	int mCurrentIndexPage = 0;
-	int mGuanQiaCount = 2;//过关的数量
+	int mGuanQiaCount = 1;//过关的数量
 
 	UserInfo * mInfo;
 	//static std::vector<Heroes *> mHeroes;

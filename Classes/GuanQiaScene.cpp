@@ -21,10 +21,10 @@ bool GuanQiaScene::init(){
 	mPrepareLayout = static_cast<Layout *>(guanQiaNode->getChildByName("PrepareLayout"));
 	mPrepareLayout->setVisible(false);
 	prepareLayout = static_cast<Layout *>(mPrepareLayout->getChildByName("PrepareGame")->getChildByName("PrepareGameL"));
-	auto startGameBtn = static_cast<Button *>(prepareLayout->getChildByName("GameStartBtn"));
-	startGameBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::startGame, this));
-	auto backBtn = static_cast<Button *>(prepareLayout->getChildByName("Back_icon"));
-	backBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::preBack, this));
+	//auto startGameBtn = static_cast<Button *>(prepareLayout->getChildByName("GameStartBtn"));
+	//startGameBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::startGame, this));
+	//auto backBtn = static_cast<Button *>(prepareLayout->getChildByName("Back_icon"));
+	//backBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::preBack, this));
 	mPageView = static_cast<PageView *>(guanQiaNode->getChildByName("GuanQiaPageView"));
 	//mPageView->setVisible(false);
 	mGuanQia1 = static_cast<Layout *>(mPageView->getChildByName("GuanQia1"));
@@ -114,7 +114,26 @@ void GuanQiaScene::downEnd(Node *  node){
 		size.width = contantW;
 		heroListView->setInnerContainerSize(size);
 		heroListView->setClippingEnabled(true);
-		heroListView->addEventListener((ListView::ccListViewCallback)CC_CALLBACK_2(GuanQiaScene::onItemClickListener, this));
+		//heroListView->addEventListener((ListView::ccListViewCallback)CC_CALLBACK_2(GuanQiaScene::onItemClickListener, this));
+		auto listListener = EventListenerTouchOneByOne::create();
+		listListener->setSwallowTouches(true);
+		listListener->onTouchBegan = [](Touch * touch, Event * event){
+			
+			auto targt = event->getCurrentTarget();
+			Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
+			Size size = targt->getContentSize();
+			Rect rect = Rect(0, 0, size.width, size.height);
+			if (rect.containsPoint(loacatinInNode)){
+				int tag = targt->getTag();
+
+
+				log("listListeneronTouchBegan   %d ", tag);
+				return true;
+			}
+
+
+			return false;
+		};
 		for (auto hero = mHeroes.begin(); hero != mHeroes.end(); hero++){
 			Layout * layout = Layout::create();
 			layout->setContentSize(Size(100, 100));
@@ -125,6 +144,8 @@ void GuanQiaScene::downEnd(Node *  node){
 			icon->setPosition(Vec2(50, 50));
 			icon->setScale(1.3f);
 			layout->addChild(icon);
+			layout->setTag((*hero)->getId());
+			Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listListener->clone(),layout);
 			heroListView->pushBackCustomItem(layout);
 		}
 
@@ -213,26 +234,26 @@ void GuanQiaScene::preBack(Ref *  node){
 //	
 //}
 
-void GuanQiaScene::onItemClickListener(Ref * pSender, ListView::EventType type){
-	switch (type) {
-	case ListView::EventType::ON_SELECTED_ITEM_START:{
-		ListView* listView = static_cast<ListView *>(pSender);
-		log("%d", listView->getCurSelectedIndex());
-
-		break;
-	
-	}
-		
-	case ListView::EventType::ON_SELECTED_ITEM_END:{
-		ListView* listView = static_cast<ListView *>(pSender);
-		log("%d", listView->getCurSelectedIndex());
-		break;
-	}
-	default:
-		break;
-	}
-	log(" onItemClickListener ");
-}
+//void GuanQiaScene::onItemClickListener(Ref * pSender, ListView::EventType type){
+//	switch (type) {
+//	case ListView::EventType::ON_SELECTED_ITEM_START:{
+//		ListView* listView = static_cast<ListView *>(pSender);
+//		log("%d", listView->getCurSelectedIndex());
+//
+//		break;
+//	
+//	}
+//		
+//	case ListView::EventType::ON_SELECTED_ITEM_END:{
+//		ListView* listView = static_cast<ListView *>(pSender);
+//		log("%d", listView->getCurSelectedIndex());
+//		break;
+//	}
+//	default:
+//		break;
+//	}
+//	log(" onItemClickListener ");
+//}
 
 
 void GuanQiaScene::decodeMonsterJson(){
