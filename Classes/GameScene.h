@@ -10,6 +10,7 @@
 #include "bean\AI.h"
 #include "bean\HeroObj.h"
 //#include "editor-support/cocostudio/ActionTimeline/CCActionTimeline.h"
+#define RoundTime 60;
 
 USING_NS_CC;
 using namespace ui;
@@ -26,10 +27,15 @@ public:
 	virtual void onEnterTransitionDidFinish();
 
 	void initGame();
+	void updateUi();
+	void updateHeroCount();
+	void updateHPMP();
+	void updateActTime();
 	bool initNotRepeatForHero(int indexX, int indexY, int id);
 	bool initNotRepeatForMonster(int indexX, int indexY, int id);
 	void addBoss(int index, int indexX, int indexY, int posionX, int posionY, BaseHeroes * heroes);
 	void heroEntry();
+	void heroCountLCallBack(Ref * ref);
 	void monsterEntry();
 	void mHeroPrepareAndDef(); 
 	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
@@ -45,12 +51,24 @@ public:
 	void aiSchedule(float delay);
 
 	virtual void onExit();
-public:
+private:
 	bool isInit;
 	bool isActionRuning = false;
 	bool isLongPress = false;
 	bool isAiRound;
-	
+
+	int mCurrentHP = 0;
+	int mCurrentMP = 0;
+	int mDEF = 0;
+	int roundCount = 0;
+	int secCurrentTime = 0;
+	int mActCount = 0;
+	int monsterCurrentHP = 0;
+	int monsterCurrentMP = 0;
+	int monsterDEF = 0;
+	int monsterActCount = 0;
+	int existHeroCount = 0;
+	int existMonsterCount = 0;
 	const int currentHeroTag = 520;
 	int touchDownY;
 	int longTouchDownX;
@@ -62,14 +80,9 @@ public:
 	std::vector<Monster *> baseMonsters;
 	std::vector<std::vector<HeroObj * >> prepareHeroes;
 	AI * monstersAI;
-
-	int existHeroCount = 0;
-	int existMonsterCount = 0;
-
-	//std::vector<HeroObj *> mHeros;
-	//std::vector<HeroObj *> monsterHeros;
 	HeroObj * mHeros[MAX_ROW * MAX_COLUMN];
 	HeroObj * monsterHeros[MAX_ROW * MAX_COLUMN];
+	EventDispatcher * eventDispatcher;
 
 	Node * gameSceneNode;//node
 	Layout * gameSceneLayout;//游戏场景
@@ -92,8 +105,6 @@ public:
 	TextAtlas * secTimeAtlas;//剩余时间
 	TextAtlas * mActCountAtlas;//行动次数
 	TextAtlas * monsterActCountAtlas;//行动次数
-
-	EventDispatcher * eventDispatcher;
 protected:
 	Size mSceneSize;
 };

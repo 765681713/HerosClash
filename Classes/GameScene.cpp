@@ -21,38 +21,47 @@ bool GameScene::init(){
 	if (!Layer::init()){
 		return false;
 	}
-
+	int bgIndex = (int)(CCRANDOM_0_1() * 3);
 	mSceneSize = Director::getInstance()->getVisibleSize();
 	gameSceneNode = CSLoader::createNode("GameScene.csb");
 	gameSceneNode->setAnchorPoint(Vec2::ZERO);
 	gameSceneNode->setPosition(Vec2::ZERO);
 	this->addChild(gameSceneNode);
 	gameSceneLayout = static_cast<Layout *>(gameSceneNode->getChildByName("GameSceneL"));
+	std::string bgName = String::createWithFormat("scene_bg_%d.png",bgIndex)->getCString();
+	gameSceneLayout->setBackGroundImage(bgName);
 	//ImageView * jiNeng1;
 	leftWall = static_cast<Sprite *>(gameSceneLayout->getChildByName("game_left_wall"));
 	rightWall = static_cast<Sprite *>(gameSceneLayout->getChildByName("game_reight_wall"));
 	Layout * mInfo = static_cast<Layout *>(gameSceneNode->getChildByName("JueSeInfoL"));
 	Sprite * jueSeIcon = static_cast<Sprite *>(mInfo->getChildByName("JueSeIcon"));
-	//juerSeIcon->load
+	jueSeIcon->initWithFile(mUserInfo->getIcon().c_str());
+	jueSeIcon->setAnchorPoint(Vec2(0,0));
 	mHPLoadingBar = static_cast<LoadingBar *>(mInfo->getChildByName("HPLoadingBar"));
 	mMPLoadingBar = static_cast<LoadingBar *>(mInfo->getChildByName("MPLoadingBar"));
 	mHPAtlas = static_cast<TextAtlas *>(mInfo->getChildByName("HPAtlas"));
 	mMPAtlas = static_cast<TextAtlas *>(mInfo->getChildByName("MPAtlas"));
 	mLevel = static_cast<Text *>(mInfo->getChildByName("JueSeLevel"));
-
+	mLevel->setString(String::createWithFormat("LV%d",mUserInfo->getLevel())->getCString());
 	Layout * monsterInfo = static_cast<Layout *>(gameSceneNode->getChildByName("MonsterInfoL"));
 	Sprite * monsterIcon = static_cast<Sprite *>(monsterInfo->getChildByName("MIcon"));
-	//monsterIcon->load
+	monsterIcon->initWithFile(monstersAI->getIcon().c_str());
+	monsterIcon->setAnchorPoint(Vec2(1, 0));
 	monsterHPLoadingBar = static_cast<LoadingBar *>(monsterInfo->getChildByName("HPLoadingBar"));
 	monsterMPLoadingBar = static_cast<LoadingBar *>(monsterInfo->getChildByName("MPLoadingBar"));
 	monsterHPAtlas = static_cast<TextAtlas *>(monsterInfo->getChildByName("HPAtlas"));
 	monsterMPAtlas = static_cast<TextAtlas *>(monsterInfo->getChildByName("MPAtlas"));
 	monsterLevel = static_cast<Text *>(monsterInfo->getChildByName("MLevel"));
+	monsterLevel->setString(String::createWithFormat("LV%d", monstersAI->getLevel())->getCString());
+
 	roundCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("RoundL")->getChildByName("RoundCountAtlas"));
 	secTimeAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("SecTimeAtlas"));
 	mActCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("JActL")->getChildByName("ActCountAtlas"));
 	monsterActCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MActL")->getChildByName("ActCountAtlas"));
-	mHeroAllCount = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MHeroCountL")->getChildByName("HeroCountAtlas"));
+
+	Layout * heroCountL = static_cast<Layout *>(gameSceneNode->getChildByName("MHeroCountL"));
+	heroCountL->addClickEventListener(CC_CALLBACK_1(GameScene::heroCountLCallBack,this));
+	mHeroAllCount = static_cast<TextAtlas *>(heroCountL->getChildByName("HeroCountAtlas"));
 	monsterAllCount = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MonsterCountL")->getChildByName("monsterCountAtlas"));
 	//事件监听
 	eventDispatcher = Director::getInstance()->getEventDispatcher();
@@ -62,11 +71,16 @@ bool GameScene::init(){
 	gameSceneListener->onTouchMoved = CC_CALLBACK_2(GameScene::onTouchMoved, this);
 	gameSceneListener->onTouchEnded = CC_CALLBACK_2(GameScene::onTouchEnded, this);
 	eventDispatcher->addEventListenerWithSceneGraphPriority(gameSceneListener, gameSceneLayout);
+	//pause btn
+	Sprite * pauseS = Sprite::create("game_scene_pause_off.png");
+	pauseS->setAnchorPoint(Vec2(0.5,0.5));
+	pauseS->setPosition(Vec2(mSceneSize.width / 2, mSceneSize.height / 9 * 8 - 10));
+	gameSceneNode->addChild(pauseS);
+	eventDispatcher->addEventListenerWithSceneGraphPriority(gameSceneListener->clone(), pauseS);
 	//
-	isAiRound = false;
+	isAiRound = true;
 	schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
 	//加载资源
-
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist");
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist");
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
@@ -87,8 +101,16 @@ bool GameScene::init(){
 			monsterHeros[i*MAX_ROW + j] = nullptr;
 		}
 	}
-
-
+	mCurrentHP = mUserInfo->getHP();
+	mCurrentMP = mUserInfo->getMP();
+	mDEF = mUserInfo->getDEF();
+	secCurrentTime = RoundTime;
+	mActCount = mUserInfo->getACT();
+	monsterCurrentHP = monstersAI->getHP();
+	monsterCurrentMP = monstersAI->getMP();
+	monsterDEF = monstersAI->getDEF();
+	monsterActCount = monstersAI->getACT();
+	updateUi();
 	return true;
 }
 
@@ -99,10 +121,59 @@ void GameScene::onEnterTransitionDidFinish(){
 	srand(time(NULL));
 }
 
+void GameScene::updateUi(){
+	secCurrentTime = RoundTime;
+	roundCount++;
+	roundCountAtlas->setString(String::createWithFormat("%d", roundCount)->getCString());
+	isAiRound = !isAiRound;
+	mActCount = mUserInfo->getACT();
+	monsterActCount = monstersAI->getACT();
+	updateActTime();
+	updateHeroCount();
+	updateHPMP();
+}
+
+void GameScene::updateActTime(){
+	if (isAiRound){
+		gameSceneNode->getChildByName("JActL")->setVisible(false);
+		gameSceneNode->getChildByName("MActL")->setVisible(true);
+	}
+	else{
+		gameSceneNode->getChildByName("MActL")->setVisible(false);
+		gameSceneNode->getChildByName("JActL")->setVisible(true);
+	}
+	mActCountAtlas->setString(String::createWithFormat("%d", mActCount)->getCString());
+	monsterActCountAtlas->setString(String::createWithFormat("%d", monsterActCount)->getCString());
+}
+
+void GameScene::updateHeroCount(){
+	int mCount = mUserInfo->getHeroesCount() - existHeroCount;
+	mHeroAllCount->setString(String::createWithFormat("%d", mCount > 0 ? mCount : 0)->getCString());
+	int monsterCount = monstersAI->getHeroesCount() - existMonsterCount;
+	monsterAllCount->setString(String::createWithFormat("%d", monsterCount > 0 ? monsterCount : 0)->getCString());
+}
+
+void  GameScene::updateHPMP(){
+	mHPLoadingBar->setPercent(mCurrentHP / mUserInfo->getHP() * 100);
+	mMPLoadingBar->setPercent(mCurrentMP / mUserInfo->getMP() * 100);
+	mHPAtlas->setString(String::createWithFormat("%d/%d", mCurrentHP, mUserInfo->getHP())->getCString());
+	mMPAtlas->setString(String::createWithFormat("%d/%d", mCurrentMP, mUserInfo->getMP())->getCString());
+	monsterHPLoadingBar->setPercent(monsterCurrentHP / monstersAI->getHP() * 100);
+	monsterMPLoadingBar->setPercent(monsterCurrentMP / monstersAI->getMP() * 100);
+	monsterHPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentHP, monstersAI->getHP())->getCString());
+	monsterMPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentMP, monstersAI->getMP())->getCString());
+}
+
 void GameScene::heroEntry(){
 	for (; existHeroCount < mUserInfo->getHeroesCount();){
 		int indexY = (int)(CCRANDOM_0_1() * MAX_ROW);
+		if (indexY == MAX_ROW){
+			indexY = MAX_ROW - 1;
+		}
 		int indexType = (int)(CCRANDOM_0_1() * baseHeroes.size());
+		if (indexType == baseHeroes.size()){
+			indexType = baseHeroes.size()-1;
+		}
 		Heroes * heroes = baseHeroes.at(indexType);
 		if (heroes->getType() == HeroType::Hero){
 			for (int j = 0; j < MAX_COLUMN; j++){
@@ -128,7 +199,8 @@ void GameScene::heroEntry(){
 					hero->runAction(action);
 					hObj->setAction(action);
 					hObj->runAction(HeroActionType::Run);
-					hero->runAction(Sequence::create(DelayTime::create(0.4f * j), MoveTo::create(0.3f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
+					hero->runAction(Sequence::create(DelayTime::create(0.3f * j), MoveTo::create(0.2f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), 
+						CallFuncN::create([hObj](Node * node){
 						hObj->runAction(HeroActionType::Stand);
 					}), NULL));
 					mHeros[index] = hObj;
@@ -179,7 +251,13 @@ void GameScene::heroEntry(){
 void GameScene::monsterEntry(){
 	for (; existMonsterCount < monstersAI->getHeroesCount();){
 		int indexY = (int)(CCRANDOM_0_1() * MAX_ROW);
+		if (indexY == MAX_ROW){
+			indexY = MAX_ROW - 1;
+		}
 		int indexType = (int)(CCRANDOM_0_1() * baseMonsters.size());
+		if (indexType == baseMonsters.size()){
+			indexType = baseMonsters.size() - 1;
+		}
 		Monster * monster = baseMonsters.at(indexType);
 		if (monster->getType() == HeroType::Hero){
 			for (int j = 0; j < MAX_COLUMN; j++){
@@ -203,7 +281,7 @@ void GameScene::monsterEntry(){
 					hero->runAction(action);
 					hObj->setAction(action);
 					hObj->runAction(HeroActionType::Run);
-					hero->runAction(Sequence::create(DelayTime::create(0.4f * j), MoveTo::create(0.3f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
+					hero->runAction(Sequence::create(DelayTime::create(0.3f * j), MoveTo::create(0.2f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
 						hObj->runAction(HeroActionType::Stand);
 					}), NULL));
 					monsterHeros[index] = hObj;
@@ -223,6 +301,7 @@ void GameScene::initGame(){
 	heroEntry();
 	monsterEntry();
 	isInit = false;
+	updateHeroCount();
 }
 
 bool GameScene::initNotRepeatForHero(int indexX, int indexY, int id){
@@ -444,6 +523,39 @@ void GameScene::addBoss(int index, int indexX, int indexY, int posionX, int posi
 }
 
 bool GameScene::onTouchBegan(Touch * pTouch, Event * pEvent){
+	auto targt = pEvent->getCurrentTarget();
+	Vec2 loacatinInNode = targt->convertToNodeSpace(pTouch->getLocation());
+	Size size = targt->getContentSize();
+	Rect rect = Rect(0, 0, size.width, size.height);
+	if (rect.containsPoint(loacatinInNode)){
+		Director::getInstance()->pause();
+		auto node = CSLoader::createNode("GamePauseLayout.csb");
+		node->setAnchorPoint(Vec2::ZERO);
+		node->setPosition(Vec2::ZERO);
+		this->addChild(node, 20, 20);
+		auto pauseLayout = node->getChildByName("GamePauseLayout");
+		auto backBtn = static_cast<Button *>(pauseLayout->getChildByName("GameBtnBack"));
+		auto startBtn = static_cast<Button *>(pauseLayout->getChildByName("GameBtnStart"));
+		auto yinXiaoC = static_cast<CheckBox *>(pauseLayout->getChildByName("GameYinXiaoC"));
+		auto yinYueC = static_cast<CheckBox *>(pauseLayout->getChildByName("GameYinYueC"));
+		backBtn->addClickEventListener([this](Ref * ref){
+			this->removeAllChildren();
+			Director::getInstance()->resume();
+			Director::getInstance()->popScene();
+
+		});
+		startBtn->addClickEventListener([this](Ref * ref){
+			Director::getInstance()->resume();
+			this->removeChildByTag(20);
+		});
+		yinXiaoC->addClickEventListener([](Ref * ref){
+
+		});
+		yinYueC->addClickEventListener([](Ref * ref){
+
+		});
+		return true;
+	}
 	if (isActionRuning || isAiRound){
 		return false;
 	}
@@ -526,6 +638,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 				mHeroPrepareAndDef();
 				mCurrentHero = nullptr;
 				isActionRuning = false;
+				
 			}), NULL));
 		}
 	}
@@ -548,6 +661,8 @@ void GameScene::onLongTouchDown(float delay){
 			//action->setLastFrameCallFunc([=](){
 			gameSceneLayout->removeChild(mHeros[indexX * MAX_ROW + indexY]->getMCurrentNode(), true);
 			mHeros[indexX * MAX_ROW + indexY] = nullptr;
+			existHeroCount--;
+			updateHeroCount();
 			for (int i = indexX + 1; i < MAX_COLUMN; i++){
 				if (mHeros[i * MAX_ROW + indexY] != nullptr){
 					HeroObj * mHero = mHeros[i * MAX_ROW + indexY];
@@ -563,7 +678,6 @@ void GameScene::onLongTouchDown(float delay){
 			}
 			//判断 准备和防御
 			mHeroPrepareAndDef();
-
 			//});
 			hero = nullptr;
 		}
@@ -646,10 +760,7 @@ void GameScene::mHeroPrepareAndDef(){
 		}
 		vHeroes.clear();
 	}
-	if (allHHeroes.empty() && allVHeroes.empty()){
-		return;
-	}
-	else if (!allHHeroes.empty() && !allVHeroes.empty()){
+	if (!allHHeroes.empty() && !allVHeroes.empty()){
 		//筛选重复的hero
 		std::vector<HeroObj *> repeatHero;
 		for (auto hHeroes : allHHeroes){
@@ -693,7 +804,14 @@ void GameScene::mHeroPrepareAndDef(){
 			}
 			mHeroPrepareAction(allHHeroes);
 			mHeroDefAction(allVHeroes);
-
+			//次数加一
+			if (isAiRound){
+				monsterActCount++;
+			}
+			else{
+				mActCount++;
+			}
+			updateActTime();
 			////超出界面  处理  从后面删一个 再填
 			//for (int i = MAX_COLUMN -1; i >= 0; i--){
 			//	int index = i*MAX_COLUMN + hero->getIndexY();
@@ -727,6 +845,17 @@ void GameScene::mHeroPrepareAndDef(){
 		//log(" allVHeroes ", allVHeroes.size());
 		mHeroDefAction(allVHeroes);
 	}
+	//回合过后不减
+	//次数减一
+	if (isAiRound){
+		monsterActCount--;
+		monsterActCount <= 0 ? updateUi() : updateActTime();
+	}
+	else{
+		mActCount--;
+		mActCount <= 0 ? updateUi() : updateActTime();
+	}
+
 }
 
 void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
@@ -829,24 +958,34 @@ void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
 }
 
 void GameScene::aiSchedule(float delay){
-	//log("aiSchedule");
+	secCurrentTime--;
+	if (secCurrentTime < 0){
+		updateUi();
+	}
+	secTimeAtlas->setString(String::createWithFormat("%d",secCurrentTime)->getCString());
+
 }
 
-
+void GameScene::heroCountLCallBack(Ref * ref){
+	if (existHeroCount < mUserInfo->getHeroesCount() && !isAiRound){
+		heroEntry();
+		updateHeroCount();
+	}
+}
 
 void GameScene::onExit(){
 	Layer::onExit();
 	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("HeroMuBei.plist");
 	int index = 0;
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
-		(*heros)->setType((HeroType)index);
+		//(*heros)->setType((HeroType)index);
 		index++;
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
 	index = 0;
 	for (auto monster = baseMonsters.begin(); monster != baseMonsters.end(); monster++){
-		(*monster)->setType((HeroType)index);
+		//(*monster)->setType((HeroType)index);
 		index++;
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);

@@ -43,7 +43,7 @@ public:
 	CC_SYNTHESIZE(int, aAtk, AAtk);//每回合攻击增加 （物理和法术都加） 
 	CC_SYNTHESIZE(double, doubleAtk, DoubleAtk);//双倍攻击的概率
 	CC_SYNTHESIZE(int, skill, Skill);//一个技能（ID）
-	CC_SYNTHESIZE(HeroType, type, Type);//一个技能（ID）
+	CC_SYNTHESIZE(HeroType, type, Type);
 };
 
 

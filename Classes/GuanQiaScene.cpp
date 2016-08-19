@@ -35,6 +35,8 @@ bool GuanQiaScene::init(){
 	mGuanQiaBiaoZhi = static_cast<Layout *>(guanQiaNode->getChildByName("GuanQiaBiaoZhi"));
 	decodeGuanQiaJson();
 	addListener(mCurrentIndexPage);
+
+
 	return true;
 }
 
@@ -180,6 +182,13 @@ void GuanQiaScene::startGame(Ref *  node){
 	mCurrentHeroes.push_back(mHeroes.at(0));
 	mCurrentHeroes.push_back(mHeroes.at(1));
 	mCurrentHeroes.push_back(mHeroes.at(2));
+	////获取系统时间
+	//struct timeval now;
+	//gettimeofday(&now, NULL);
+	////初始化随机种子
+	////timeval是个结构体，里边有俩个变量，一个是以秒为单位的，一个是以微妙为单位的 
+	//unsigned rand_seed = (unsigned)(now.tv_sec * 1000 + now.tv_usec / 1000);    //都转化为毫秒 
+	//srand(rand_seed);
 	auto gameScene = GameScene::createScene(mInfo, mCurrentHeroes, mCurrentMonsters, monsterAi);
 	Director::getInstance()->pushScene(gameScene);
 	mPrepareLayout->setVisible(false);
