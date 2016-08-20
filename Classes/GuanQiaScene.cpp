@@ -21,10 +21,15 @@ bool GuanQiaScene::init(){
 	mPrepareLayout = static_cast<Layout *>(guanQiaNode->getChildByName("PrepareLayout"));
 	mPrepareLayout->setVisible(false);
 	prepareLayout = static_cast<Layout *>(mPrepareLayout->getChildByName("PrepareGame")->getChildByName("PrepareGameL"));
-	//auto startGameBtn = static_cast<Button *>(prepareLayout->getChildByName("GameStartBtn"));
-	//startGameBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::startGame, this));
-	//auto backBtn = static_cast<Button *>(prepareLayout->getChildByName("Back_icon"));
-	//backBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::preBack, this));
+	myHero1 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero1"));
+	myHero2 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero2"));
+	myHero3 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero3"));
+	myHero4 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero4"));
+	myHero5 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero5"));
+	auto startGameBtn = static_cast<Button *>(prepareLayout->getChildByName("GameStartBtn"));
+	startGameBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::startGame, this));
+	auto backBtn = static_cast<Button *>(prepareLayout->getChildByName("Back_icon"));
+	backBtn->addClickEventListener(CC_CALLBACK_1(GuanQiaScene::preBack, this));
 	mPageView = static_cast<PageView *>(guanQiaNode->getChildByName("GuanQiaPageView"));
 	//mPageView->setVisible(false);
 	mGuanQia1 = static_cast<Layout *>(mPageView->getChildByName("GuanQia1"));
@@ -104,6 +109,16 @@ void GuanQiaScene::downEnd(Node *  node){
 	}
 	if (mCurrentItem != nullptr && mInfo != nullptr && mHeroes.size() > 0){
 		mPrepareLayout->setVisible(true);
+		myHero1->removeAllChildren();
+		myHero1->setTag(-1);
+		myHero2->removeAllChildren();
+		myHero2->setTag(-2);
+		myHero3->removeAllChildren();
+		myHero3->setTag(-3);
+		myHero4->removeAllChildren();
+		myHero4->setTag(-4);
+		myHero5->removeAllChildren();
+		myHero5->setTag(-5);
 		ListView * heroListView = static_cast<ListView *>(prepareLayout->getChildByName("GuanQiaHeroListView"));
 		heroListView->removeAllChildren();
 		heroListView->setScrollBarEnabled(false);
@@ -117,43 +132,21 @@ void GuanQiaScene::downEnd(Node *  node){
 		//heroListView->addEventListener((ListView::ccListViewCallback)CC_CALLBACK_2(GuanQiaScene::onItemClickListener, this));
 		auto listListener = EventListenerTouchOneByOne::create();
 		listListener->setSwallowTouches(true);
-		listListener->onTouchBegan = [](Touch * touch, Event * event){
-			
-			auto targt = event->getCurrentTarget();
-			Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
-			Size size = targt->getContentSize();
-			Rect rect = Rect(0, 0, size.width, size.height);
-			if (rect.containsPoint(loacatinInNode)){
-				int tag = targt->getTag();
-
-
-				log("listListeneronTouchBegan   %d ", tag);
-				return true;
-			}
-
-
-			return false;
-		};
-		for (auto hero = mHeroes.begin(); hero != mHeroes.end(); hero++){
+		listListener->onTouchBegan = CC_CALLBACK_2(GuanQiaScene::onItemClickListener,this);
+		for (unsigned int i = 0; i < mHeroes.size(); i++){
 			Layout * layout = Layout::create();
 			layout->setContentSize(Size(100, 100));
 			layout->setBackGroundImage("HeroListItem/hero_list_icon_bg.png");
-			Sprite * icon = Sprite::create((*hero)->getIcon());
+			Sprite * icon = Sprite::create(mHeroes.at(i)->getIcon());
 			icon->setContentSize(Size(50, 50));
 			icon->setAnchorPoint(Vec2(0.5, 0.5));
 			icon->setPosition(Vec2(50, 50));
 			icon->setScale(1.3f);
 			layout->addChild(icon);
-			layout->setTag((*hero)->getId());
-			Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listListener->clone(),layout);
+			layout->setTag(i);
+			Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listListener->clone(), layout);
 			heroListView->pushBackCustomItem(layout);
 		}
-
-		//auto myHero1 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero1"));
-		//auto myHero2 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero2"));
-		//auto myHero3 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero3"));
-		//auto myHero4 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero4"));
-		//auto myHero5 = static_cast<Layout *>(prepareLayout->getChildByName("MyHero5"));
 		mCurrentMonsters.clear();
 		decodeMonsterJson();
 		for (unsigned int i = 0; i < mCurrentMonsters.size(); i++){
@@ -177,8 +170,6 @@ void GuanQiaScene::downEnd(Node *  node){
 			icon->setPosition(Vec2(45, 45));
 			masterLayout->addChild(icon);
 		}
-		//auto monster4 = static_cast<Layout *>(prepareLayout->getChildByName("Monster4"));
-		//auto monster5 = static_cast<Layout *>(prepareLayout->getChildByName("Monster5"));
 		mWuPins.clear();
 		decodeWuPinJson();
 		for (unsigned int i = 0; i < mWuPins.size(); i++){
@@ -200,9 +191,18 @@ void GuanQiaScene::downEnd(Node *  node){
 void GuanQiaScene::startGame(Ref *  node){
 	decodeAIJson();
 	mCurrentHeroes.clear();
-	mCurrentHeroes.push_back(mHeroes.at(0));
-	mCurrentHeroes.push_back(mHeroes.at(1));
-	mCurrentHeroes.push_back(mHeroes.at(2));
+	if (myHero1->getTag() < 0 || myHero2->getTag() < 0 || myHero3->getTag() < 0){
+		return;
+	}
+	mCurrentHeroes.push_back(mHeroes.at(myHero1->getTag()));
+	mCurrentHeroes.push_back(mHeroes.at(myHero2->getTag()));
+	mCurrentHeroes.push_back(mHeroes.at(myHero3->getTag()));
+	if (myHero4->getTag() >= 0){
+		mCurrentHeroes.push_back(mHeroes.at(myHero4->getTag()));
+	}
+	if (myHero5->getTag() >= 0){
+		mCurrentHeroes.push_back(mHeroes.at(myHero5->getTag()));
+	}
 	////获取系统时间
 	//struct timeval now;
 	//gettimeofday(&now, NULL);
@@ -229,10 +229,100 @@ void GuanQiaScene::preBack(Ref *  node){
 	}
 }
 
-//void GuanQiaScene::onItemClickListener(Ref * pSender){
-//	log("%d", ((Layout *)pSender)->getTag());
-//	
-//}
+void GuanQiaScene::nodeFadeAction(Node * node, int fade){
+	auto nodes = node->getChildren();
+	for (auto node : nodes){
+		node->runAction(FadeTo::create(0.1f, fade));
+	}
+	node->runAction(FadeTo::create(0.1f, fade));
+}
+
+bool GuanQiaScene::onItemClickListener(Touch * touch, Event * event){
+	auto targt = event->getCurrentTarget();
+	Vec2 loacatinInNode = targt->convertToNodeSpace(touch->getLocation());
+	Size size = targt->getContentSize();
+	Rect rect = Rect(0, 0, size.width, size.height);
+	if (rect.containsPoint(loacatinInNode)){
+		int tag = targt->getTag();
+		if (myHero1->getTag() == tag){
+			nodeFadeAction(targt,255);
+			myHero1->removeAllChildren();
+			myHero1->setTag(-1);
+			return true;
+		}
+		else if(myHero2->getTag() == tag){
+			nodeFadeAction(targt, 255);
+			myHero2->removeAllChildren();
+			myHero2->setTag(-2);
+			return true;
+		}
+		else if (myHero3->getTag() == tag){
+			nodeFadeAction(targt, 255);
+			myHero3->removeAllChildren();
+			myHero3->setTag(-3);
+			return true;
+		}
+		else if (myHero4->getTag() == tag){
+			nodeFadeAction(targt, 255);
+			myHero4->removeAllChildren();
+			myHero4->setTag(-4);
+			return true;
+		}
+		else if (myHero5->getTag() == tag){
+			nodeFadeAction(targt, 255);
+			myHero5->removeAllChildren();
+			myHero5->setTag(-5);
+			return true;
+		}
+		auto hero = mHeroes.at(tag);
+		if (hero->getType() == HeroType::Boss){
+			Sprite * icon = Sprite::create(hero->getIcon());
+			icon->setContentSize(Size(50, 50));
+			icon->setAnchorPoint(Vec2(0.5, 0.5));
+			icon->setPosition(Vec2(50, 50));
+			icon->setScale(1.2f);
+			if (myHero4->getTag() < 0){
+				nodeFadeAction(targt, 125);
+				myHero4->setTag(tag);
+				myHero4->addChild(icon);
+				return true;
+			}
+			else if (myHero5->getTag() < 0){
+				nodeFadeAction(targt, 125);
+				myHero4->setTag(tag);
+				myHero4->addChild(icon);
+				return true;
+			}
+		}
+		else{
+			Sprite * icon = Sprite::create(hero->getIcon());
+			icon->setContentSize(Size(50, 50));
+			icon->setAnchorPoint(Vec2(0.5, 0.5));
+			icon->setPosition(Vec2(50, 50));
+			icon->setScale(1.0f);
+			if (myHero1->getTag() < 0){
+				nodeFadeAction(targt, 125);
+				myHero1->setTag(tag);
+				myHero1->addChild(icon);
+				return true;
+			}
+			else if(myHero2->getTag() < 0){
+				nodeFadeAction(targt, 125);
+				myHero2->setTag(tag);
+				myHero2->addChild(icon);
+				return true;
+			}
+			else if(myHero3->getTag() < 0){
+				nodeFadeAction(targt, 125);
+				myHero3->setTag(tag);
+				myHero3->addChild(icon);
+				return true;
+			}
+		}
+		return true;
+	}
+	return false;
+}
 
 //void GuanQiaScene::onItemClickListener(Ref * pSender, ListView::EventType type){
 //	switch (type) {

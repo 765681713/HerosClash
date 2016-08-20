@@ -14,6 +14,7 @@
 #define mStartY   450
 #define heroW   60
 #define heroH   55
+#define Multiple 3
 
 USING_NS_CC;
 using namespace ui;
@@ -44,6 +45,7 @@ public:
 	int getIndexY();
 	void setIndexY(int indexY);
 	int getId();
+	int getHeroACT();
 	Node * getMCurrentNode();
 	void addNode(Layout * layout, Node * node);
 	void setAction(ActionTimeline * action);
@@ -55,11 +57,15 @@ public:
 
 	void prepare(bool showNum);
 	void def();
-	void attact();
+	void attact(HeroObj * targetHero, bool isCallFun, std::function<void()> callFun);
+	void updateRound();
+	void hit(int * atk);
+	void death();
+
 
 public :
 	bool isClone = false;
-
+	
 private:
 	Layout * mCurrentLayout;
 	Node * mCurrentNode;
@@ -68,6 +74,13 @@ private:
 	int indexY = 0;
 	ActionTimeline* mCurrentAction;
 	HeroActionType mActionType;
+
+	int mCurrentHP = 0;
+	int mCurrentATK = 0;
+	int mCurrentDEF = 0;
+	int mCurrentADD = 0;
+	int mCurrentACT = 0;
+	double mCurrentDouble = 0;
 };
 
 #endif

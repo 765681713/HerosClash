@@ -270,6 +270,13 @@ void MenuScene::decodeHeroList(){
 				else{
 					hero->setType(HeroType::Hero);
 				}
+				if (heroValue.HasMember("type")){
+					int atkType = heroValue["type"].GetInt();
+					hero->setAtkType((HeroAtkType)atkType);
+				}
+				else{
+					hero->setAtkType(HeroAtkType::Other);
+				}
 				hero->setId(id.GetInt());
 				hero->setTitle(title.GetString());
 				hero->setName(name.GetString());

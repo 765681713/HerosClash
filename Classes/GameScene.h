@@ -31,6 +31,7 @@ public:
 	void updateHeroCount();
 	void updateHPMP();
 	void updateActTime();
+	void updateHeroAct();
 	bool initNotRepeatForHero(int indexX, int indexY, int id);
 	bool initNotRepeatForMonster(int indexX, int indexY, int id);
 	void addBoss(int index, int indexX, int indexY, int posionX, int posionY, BaseHeroes * heroes);

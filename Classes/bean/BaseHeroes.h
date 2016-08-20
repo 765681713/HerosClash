@@ -10,6 +10,13 @@ typedef enum {
 	Boss
 }HeroType;
 
+typedef enum{
+	ZhanShi,
+	FaShi,
+	GongJianShou,
+	Other
+}HeroAtkType;
+
 class BaseHeroes : public Ref
 {
 public:
@@ -40,10 +47,11 @@ public:
 	CC_SYNTHESIZE(int, pDef, PDef);//物理防御
 	CC_SYNTHESIZE(int, sDef, SDef);//法术防御
 	CC_SYNTHESIZE(int, round, Round);//蓄力回合数
-	CC_SYNTHESIZE(int, aAtk, AAtk);//每回合攻击增加 （物理和法术都加） 
+	CC_SYNTHESIZE(int, aAtk, AAtk);//每回合攻击增加 （物理和法术共加） 
 	CC_SYNTHESIZE(double, doubleAtk, DoubleAtk);//双倍攻击的概率
 	CC_SYNTHESIZE(int, skill, Skill);//一个技能（ID）
 	CC_SYNTHESIZE(HeroType, type, Type);
+	CC_SYNTHESIZE(HeroAtkType, atkType, AtkType);
 };
 
 

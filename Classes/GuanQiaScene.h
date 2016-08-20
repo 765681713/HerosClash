@@ -44,10 +44,11 @@ public:
 
 	//英雄列表点击事件void addEventListenerListView(Ref* target, SEL_ListViewEvent selector);
 	//void onItemClickListener(Ref * pSender, ListView::EventType type);
-	//void onItemClickListener(Ref * pSender);
+	bool onItemClickListener(Touch * touch, Event * event);
 
 	void removeListener();
 	void addListener(int index);
+	void nodeFadeAction(Node * node ,int fade);
 
 	virtual void onExit();
 	~GuanQiaScene();
@@ -58,6 +59,12 @@ public:
 
 	Layout * mGuanQia1;
 	Layout * mGuanQia2;
+
+	Layout * myHero1;
+	Layout * myHero2;
+	Layout * myHero3;
+	Layout * myHero4;
+	Layout * myHero5;
 
 	Text * mTitle;
 

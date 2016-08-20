@@ -42,6 +42,10 @@ void HeroObj::setIndexY(int indexY){
 	//updateNode();
 }
 
+int HeroObj::getHeroACT(){
+	return mCurrentACT;
+}
+
 Node * HeroObj::getMCurrentNode(){
 	return this->mCurrentNode;
 }
@@ -66,6 +70,7 @@ void HeroObj::runAction(HeroActionType actionType){
 	switch (actionType){
 	case HeroActionType::Stand:{
 		mCurrentAction->play("stand", true);
+		mCurrentHP = hero->getHP();
 		break;
 	}
 	case HeroActionType::Prepare:{
@@ -138,14 +143,20 @@ void HeroObj::prepare(bool showNum){
 	effectDef->play("prebody1", true);
 	mCurrentNode->addChild(defNode, 0, 0);
 	runAction(HeroActionType::Prepare);
+	mCurrentADD = Multiple * hero->getAAtk();
+	mCurrentHP = mCurrentATK = Multiple * (hero->getPAtk() + hero->getSAtk());
+	mCurrentDEF = hero->getPDef() > hero->getSDef() ? hero->getPDef() : hero->getSDef();
+	mCurrentACT = hero->getRound();
 	if (showNum){
 		//添加进度条和攻击数字回合
-		TextAtlas * atkAtlas = TextAtlas::create("35", "hero_atk_num.png", 30, 35, ".");
+		std::string atk = String::createWithFormat("%d",mCurrentATK)->getCString();
+		TextAtlas * atkAtlas = TextAtlas::create(atk, "hero_atk_num.png", 30, 35, ".");
 		atkAtlas->setAnchorPoint(Vec2(0.5, 1));
 		atkAtlas->setScaleX(-0.5f);
 		atkAtlas->setScaleY(0.5f);
 		atkAtlas->setPosition(Vec2(0, 35));
-		TextAtlas * roundAtlas = TextAtlas::create("5", "hero_round_count_num.png", 50, 65, ".");
+		std::string act = String::createWithFormat("%d", mCurrentACT)->getCString();
+		TextAtlas * roundAtlas = TextAtlas::create(act, "hero_round_count_num.png", 50, 65, ".");
 		roundAtlas->setScaleX(-0.3f);
 		roundAtlas->setAnchorPoint(Vec2(0.5, 1));
 		roundAtlas->setScaleY(0.3f);
@@ -157,7 +168,8 @@ void HeroObj::prepare(bool showNum){
 		//从左到右
 		atkPro->setMidpoint(ccp(0, 0.5));
 		atkPro->setBarChangeRate(ccp(1, 0));
-		atkPro->setPercentage(30);
+		int hp = mCurrentATK * 100 / (mCurrentATK + mCurrentACT * mCurrentADD);
+		atkPro->setPercentage(hp);
 		atkPro->setScaleX(-0.5f);
 		atkPro->setScaleY(0.5f);
 		atkPro->setAnchorPoint(Vec2(0.5, 1));
@@ -166,10 +178,10 @@ void HeroObj::prepare(bool showNum){
 		atkProOff->setScaleY(0.5f);
 		atkProOff->setAnchorPoint(Vec2(0.5, 1));
 		atkProOff->setPosition(Vec2(0, 10));
-		mCurrentNode->addChild(atkAtlas, 2, 1);
-		mCurrentNode->addChild(atkProOff, 1, 2);
-		mCurrentNode->addChild(atkPro, 1, 3);
-		mCurrentNode->addChild(roundAtlas, 2, 4);
+		mCurrentNode->addChild(atkAtlas, 2, 100);
+		mCurrentNode->addChild(atkProOff, 1, 200);
+		mCurrentNode->addChild(atkPro, 1, 300);
+		mCurrentNode->addChild(roundAtlas, 2, 400);
 	}
 }
 
@@ -194,10 +206,91 @@ void HeroObj::def(){
 	node->runAction(action);
 	setAction(action);
 	runAction(HeroActionType::Def);
-	hero->setPDef(hero->getPDef() * 2);//增加防御
+	mCurrentHP = Multiple * hero->getHP();
+	mCurrentDEF = Multiple * (hero->getPDef() + hero->getSDef());
 }
 
-void HeroObj::attact(){
-		
+void HeroObj::updateRound(){
+	if (mActionType == HeroActionType::Prepare){
+		mCurrentACT--;
+		mCurrentHP = mCurrentATK = mCurrentATK + mCurrentADD;
+		log("mCurrentNode->getChildrenCount() = %d", mCurrentNode->getChildrenCount());
+		if (mCurrentNode->getChildrenCount() > 3){
+			TextAtlas * atkAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(100));
+			std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
+			atkAtlas->setString(atk);
+			ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(300));
+			int hp = mCurrentATK * 100 / (mCurrentATK + mCurrentACT * mCurrentADD);
+			atkPro->setPercentage(hp);
+			std::string act = String::createWithFormat("%d", mCurrentACT)->getCString();
+			TextAtlas * actAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(400));
+			actAtlas->setString(act);
+		}
+	}
+}
+
+void HeroObj::hit(int * atk){
+	if ((*atk) >= mCurrentHP + mCurrentDEF){
+		//
+		(*atk) = (*atk) - mCurrentHP - mCurrentDEF;
+		mCurrentHP = 0;
+	}
+	else if((*atk) <= mCurrentDEF){
+		//显示0 
+		(*atk) = 0;
+		return;
+	}
+	else {
+		//
+		mCurrentHP = mCurrentHP + mCurrentDEF - (*atk);
+		if (mActionType == HeroActionType::Prepare){
+			mCurrentATK = mCurrentHP;
+			if (mCurrentNode->getChildren().size() > 2){
+				TextAtlas * atkAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(1));
+				std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
+				atkAtlas->setString(atk);
+				ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(3));
+				atkPro->setPercentage((int(mCurrentATK / (mCurrentATK + mCurrentACT * mCurrentADD) * 100)));
+			}
+		}
+		(*atk) = 0;
+	}
+}
+
+void HeroObj::attact(HeroObj * targetHero ,bool isCallFun, std::function<void()> callFun){
+	//隐藏行动text
+	//判断英雄类型  攻击动画
+	switch (hero->getAtkType()){
+	case HeroAtkType::ZhanShi:{
+		runAction(HeroActionType::Run);
+		float time = 0.2 * (targetHero->getIndexX() + this->indexX + 1);
+		mCurrentNode->runAction(Sequence::create(
+			EaseInOut::create(MoveTo::create(time, Vec2(targetHero->getpositionX(), targetHero->getpositionY())), 2)
+			, [=](){
+				runAction(HeroActionType::Attack);
+				if (isCallFun){
+					mCurrentAction->setLastFrameCallFunc(callFun);
+				}
+		}, NULL));
+		break;
+	}
+	case HeroAtkType::FaShi:{
+		break;
+	}
+	case HeroAtkType::GongJianShou:{
+		break;
+	}
+	case HeroAtkType::Other:{
+		break;
+	}
+	}
+}
+
+void HeroObj::death(){
+	mCurrentNode->removeAllChildren();
+	mCurrentNode->removeFromParentAndCleanup(true);
+	mCurrentAction->release();
+	mCurrentAction = nullptr;
+	this->release();
 	
 }

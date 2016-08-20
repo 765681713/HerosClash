@@ -131,6 +131,7 @@ void GameScene::updateUi(){
 	updateActTime();
 	updateHeroCount();
 	updateHPMP();
+	updateHeroAct();
 }
 
 void GameScene::updateActTime(){
@@ -162,6 +163,26 @@ void  GameScene::updateHPMP(){
 	monsterMPLoadingBar->setPercent(monsterCurrentMP / monstersAI->getMP() * 100);
 	monsterHPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentHP, monstersAI->getHP())->getCString());
 	monsterMPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentMP, monstersAI->getMP())->getCString());
+}
+
+void GameScene::updateHeroAct(){
+	if (isAiRound){
+		
+	}
+	else{
+		for (auto heroes : prepareHeroes){
+			for (auto hero : heroes){
+				hero->updateRound();
+			}
+			if (heroes.at(0)->getHeroACT() == 0){
+
+				for (auto hero : heroes){
+					//¹¥»÷
+					//hero->attact();
+				}
+			}
+		}
+	}
 }
 
 void GameScene::heroEntry(){
