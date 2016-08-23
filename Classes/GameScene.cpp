@@ -114,6 +114,12 @@ bool GameScene::init(){
 	return true;
 }
 
+void GameScene::onEnter(){
+	Layer::onEnter();
+
+	this->scheduleUpdate();
+}
+
 void GameScene::onEnterTransitionDidFinish(){
 	DelayTime * dTime = DelayTime::create(0);
 	Sequence * action = Sequence::create(dTime, CallFunc::create(CC_CALLBACK_0(GameScene::initGame, this)), NULL);
@@ -170,16 +176,24 @@ void GameScene::updateHeroAct(){
 		
 	}
 	else{
-		for (auto heroes : prepareHeroes){
-			for (auto hero : heroes){
+		for (auto heroes = prepareHeroes.begin(); heroes != prepareHeroes.end();heroes++){
+			auto hs = (*heroes);
+			for (auto hero : hs){
 				hero->updateRound();
 			}
-			if (heroes.at(0)->getHeroACT() == 0){
-
-				for (auto hero : heroes){
-					//攻击
-					//hero->attact();
+			if (hs.at(0)->getHeroACT() == 0){
+				for (unsigned int i = 0; i < hs.size(); i++){
+					auto heroObj = hs.at(i);
+					if (i == 0){
+						//把第一个英雄放到碰撞集合中
+						preAttackHeroes.push_back(heroObj);
+					}
+					heroObj->atkEnemy(mSceneSize.width,mSceneSize.height,i);
 				}
+				//添加到攻击列表中   删除准备列表中
+				attackingHeroes.push_back(hs);
+				//for (auto heros = (*heroes).begin();heroe)
+				//prepareHeroes.erase();
 			}
 		}
 	}
@@ -295,6 +309,7 @@ void GameScene::monsterEntry(){
 					hObj->setHero(monster);
 					std::string nodeName = String::createWithFormat("%s.csb", monster->getName().c_str())->getCString();
 					auto hero = CSLoader::createNode(nodeName.c_str());
+					hero->retain();
 					hero->setPosition(mSceneSize.width + 60, hObj->getpositionY());
 					hObj->addNode(gameSceneLayout, hero);
 					//出场动画
@@ -991,6 +1006,86 @@ void GameScene::aiSchedule(float delay){
 	}
 }
 
+void GameScene::update(float dt){
+	if (!preAttackHeroes.empty()){
+		for (auto heroObj = preAttackHeroes.begin(); heroObj != preAttackHeroes.end();heroObj ++){
+			auto h = (*heroObj);
+			for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
+				auto monsterObj = monsterHeros[i];
+				if (monsterObj == nullptr){
+					continue;
+				}
+				if (h->collision(monsterObj)){//如果碰撞
+					for (auto atting = attackingHeroes.begin(); atting != attackingHeroes.end(); atting++){
+						std::vector<HeroObj*> attVec = (*atting);
+						//遍历 攻击的英雄列表
+						if (attVec.at(0)->getId() == h->getId()){
+							h->attack(monsterObj, true);
+							if (attVec.size() >= 2){
+								attVec.at(1)->attack(monsterObj, false);
+							}
+							if (attVec.size() >= 3){
+								attVec.at(2)->attack(monsterObj, false);
+							}
+							//攻击
+							//找到攻击的那个英雄 同事修改其他（一组内的攻击力）
+							for (auto attHero : attVec){
+								attHero->setHeroHP(h->getHeroHP());
+								attHero->setHeroATK(*(h->getHeroATK()));
+								attHero->updateATK();//更新 攻击条
+							}
+							break;
+						}
+						if (h->getHeroATK() <= 0){
+							//移除攻击列表中的
+							attackingHeroes.erase(atting);
+							preAttackHeroes.erase(heroObj);
+							h = nullptr;
+						}
+					}
+				}
+			}
+			
+			//
+			if (h != nullptr && h->getMWuQi()->getPosition().x + heroW >= mSceneSize.width - heroW){
+				
+			}
+
+			
+		}
+
+		for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
+			auto monsterObj = monsterHeros[i];
+			if (monsterObj == nullptr){
+				continue;
+			}
+			if (monsterObj->getHeroHP() <= 0 || monsterObj->getHeroATK() <= 0){//敌人hp小于0
+				monsterObj->death();
+				monsterObj = nullptr;
+				monsterHeros[i] = nullptr;
+			}
+		}
+
+		for (int i = 0; i < AllHeroCount; i++){ //遍历hero
+			auto hero = mHeros[i];
+			if (hero == nullptr){
+				continue;
+			}
+			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hp小于0
+				hero->death();
+				hero = nullptr;
+				mHeros[i] = nullptr;
+			}
+		}
+	}
+
+	if (!preAttackMonster.empty()){
+		
+	}
+
+	
+}
+
 void GameScene::heroCountLCallBack(Ref * ref){
 	if (existHeroCount < mUserInfo->getHeroesCount() && !isAiRound){
 		heroEntry();
@@ -1016,4 +1111,5 @@ void GameScene::onExit(){
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
 	unschedule(schedule_selector(GameScene::aiSchedule));
+	unscheduleUpdate();
 }

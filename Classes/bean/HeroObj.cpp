@@ -45,11 +45,28 @@ void HeroObj::setIndexY(int indexY){
 int HeroObj::getHeroACT(){
 	return mCurrentACT;
 }
+int HeroObj::getHeroHP(){
+	return mCurrentHP;
+}
+
+void HeroObj::setHeroHP(int hp){
+	this->mCurrentHP = hp;
+}
+void HeroObj::setHeroATK(int atk){
+	this->mCurrentATK = atk;
+}
+
+int * HeroObj::getHeroATK(){
+	return &mCurrentATK;
+}
 
 Node * HeroObj::getMCurrentNode(){
 	return this->mCurrentNode;
 }
 
+Node * HeroObj::getMWuQi(){
+	return mWuQi;
+}
 //添加node
 void HeroObj::addNode(Layout * layout, Node * node){
 	this->mCurrentLayout = layout;
@@ -214,7 +231,6 @@ void HeroObj::updateRound(){
 	if (mActionType == HeroActionType::Prepare){
 		mCurrentACT--;
 		mCurrentHP = mCurrentATK = mCurrentATK + mCurrentADD;
-		log("mCurrentNode->getChildrenCount() = %d", mCurrentNode->getChildrenCount());
 		if (mCurrentNode->getChildrenCount() > 3){
 			TextAtlas * atkAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(100));
 			std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
@@ -225,7 +241,21 @@ void HeroObj::updateRound(){
 			std::string act = String::createWithFormat("%d", mCurrentACT)->getCString();
 			TextAtlas * actAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(400));
 			actAtlas->setString(act);
+			if (mCurrentACT <= 0){
+				actAtlas->setVisible(false);
+			}
 		}
+	}
+}
+
+void HeroObj::updateATK(){
+	if (mCurrentNode->getChildrenCount() > 3){
+		TextAtlas * atkAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(100));
+		std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
+		atkAtlas->setString(atk);
+		ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(300));
+		int hp = mCurrentATK * 100 / (mCurrentATK + mCurrentACT * mCurrentADD);
+		atkPro->setPercentage(hp);
 	}
 }
 
@@ -257,21 +287,88 @@ void HeroObj::hit(int * atk){
 	}
 }
 
-void HeroObj::attact(HeroObj * targetHero ,bool isCallFun, std::function<void()> callFun){
+//HeroObj * targetHero, int count, bool isCallFun, std::function<void()> callFun
+void HeroObj::atkEnemy(int width, int height, int index){
 	//隐藏行动text
 	//判断英雄类型  攻击动画
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
+		mWuQi = mCurrentNode;
 		runAction(HeroActionType::Run);
-		float time = 0.2 * (targetHero->getIndexX() + this->indexX + 1);
-		mCurrentNode->runAction(Sequence::create(
-			EaseInOut::create(MoveTo::create(time, Vec2(targetHero->getpositionX(), targetHero->getpositionY())), 2)
-			, [=](){
-				runAction(HeroActionType::Attack);
-				if (isCallFun){
-					mCurrentAction->setLastFrameCallFunc(callFun);
-				}
-		}, NULL));
+		float time = 0.1 * (this->indexX + MAX_COLUMN + 3);//中间 和两边的移动时间
+		int didtanceX = !isMonster ? width - (index + 1) * heroW : 0 + (index + 1) * heroW;
+		auto action = Sequence::create(MoveTo::create(time, Vec2(didtanceX, positionY)), NULL);
+		action->setTag(111);
+		mCurrentNode->runAction(action);
+		break;
+	}
+	case HeroAtkType::FaShi:{
+		mWuQi = mCurrentNode;
+		break;
+	}
+	case HeroAtkType::GongJianShou:{
+		mWuQi = mCurrentNode;
+		break;
+	}
+	case HeroAtkType::Other:{
+		mWuQi = mCurrentNode;
+		break;
+	}
+	}
+}
+
+bool HeroObj::collision(HeroObj * target){
+	//不同的武器 不同的碰撞检测
+	switch (hero->getAtkType()){
+	case HeroAtkType::ZhanShi:{
+		if (mCurrentNode->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2
+			&& target->getMCurrentNode()->getPosition().y < mCurrentNode->getPosition().y + heroH / 2 &&
+			target->getMCurrentNode()->getPosition().y > mCurrentNode->getPosition().y - heroH / 2){
+			return true;
+		}
+		return false;
+		break;
+	}
+	case HeroAtkType::FaShi:{
+
+		return false;
+		break;
+	}
+	case HeroAtkType::GongJianShou:{
+
+		return false;
+		break;
+	}
+	case HeroAtkType::Other:{
+
+		return false;
+		break;
+	}
+	}
+	return false;
+}
+
+void HeroObj::attack(HeroObj * target , bool isAtt){
+	if (isAttacking){
+		return;
+	}
+	isAttacking = true;
+	//用自己的武器攻击英雄
+	switch (hero->getAtkType()){
+	case HeroAtkType::ZhanShi:{
+		auto action = mCurrentNode->getActionByTag(111);
+		mCurrentNode->stopAction(action);
+		runAction(HeroActionType::Attack);
+		mCurrentAction->setLastFrameCallFunc([=](){
+			if (isAtt){
+				target->hit(&mCurrentATK);
+			}
+			mCurrentNode->getActionManager()->resumeTarget(mCurrentNode);
+			//攻击后动画有问题
+			//mCurrentNode->runAction(action);
+			isAttacking = false;
+			mCurrentAction->clearLastFrameCallFunc();
+		});
 		break;
 	}
 	case HeroAtkType::FaShi:{
@@ -287,10 +384,12 @@ void HeroObj::attact(HeroObj * targetHero ,bool isCallFun, std::function<void()>
 }
 
 void HeroObj::death(){
+	/*if (mWuQi != nullptr){
+		mWuQi->stopAllActions();
+		mWuQi->removeFromParentAndCleanup(true);
+	}*/
+	mCurrentNode->stopAllActions();
 	mCurrentNode->removeAllChildren();
 	mCurrentNode->removeFromParentAndCleanup(true);
-	mCurrentAction->release();
-	mCurrentAction = nullptr;
 	this->release();
-	
 }

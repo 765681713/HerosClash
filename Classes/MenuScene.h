@@ -10,6 +10,7 @@
 #include "bean\UserInfo.h"
 #include "bean\Heroes.h"
 #include "bean\WuPin.h"
+#include "network\SocketIO.h"
 
 #define MUSIC_KEY "music_key"
 #define SOUND_KEY "sound_key"
@@ -19,8 +20,9 @@ USING_NS_CC;
 using namespace cocostudio;
 using namespace ui;
 using namespace CocosDenshion;
+using namespace network;
 
-class MenuScene : public Layer
+class MenuScene : public Layer,SocketIO::SIODelegate
 {
 public:
 	CREATE_FUNC(MenuScene);
@@ -58,6 +60,16 @@ public:
 	//背包列表
 	void onBeiBaoLanClick();
 
+	//连网
+	virtual void onConnect(SIOClient* client);
+	virtual void onMessage(SIOClient* client, const std::string& data);
+	virtual void onClose(SIOClient* client);
+	virtual void onError(SIOClient* client, const std::string& data);
+	//回调
+	virtual void getUserInfo(SIOClient* client, const std::string& data);
+
+
+	std::string getCurrentTime();
 public:
 	EventDispatcher * eventDispatcher;
 	Layout * layer1;
@@ -74,6 +86,8 @@ public:
 	std::vector<Heroes *> mHeroes;
 	std::vector<WuPin *> mWuPins;
 	UserInfo * userInfo;
+	SIOClient * sioClient;
+
 };
 
 typedef enum {

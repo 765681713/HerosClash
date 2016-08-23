@@ -51,6 +51,12 @@ bool MenuScene::init(){
 	auto shiLian = scrollView->getChildByName("ShiLian");
 	shiLian->setTag(MenuType::ScrollShiLianu);
 	eventDispatcher->addEventListenerWithSceneGraphPriority(spriteListener->clone(), shiLian);
+	//socketIO
+	sioClient = SocketIO::connect("http://localhost:3000", *this);
+	sioClient->setTag("BingYanDeXuanLv");
+	//回调
+	sioClient->on("getUserInfo",CC_CALLBACK_2(MenuScene::getUserInfo,this));
+
 
 	//LayoutInfo    
 	Layout * infoLayout = static_cast<Layout *>(sceneNode->getChildByName("LayoutInfo"));
@@ -763,6 +769,37 @@ void MenuScene::onBeiBaoLanClick(){
 
 }
 
+
+//连网
+void MenuScene::onConnect(SIOClient* client){
+	log(" MenuScene:: onConnect");
+	__String * content = __String::createWithFormat("{\"cdate\":\"%s\",\"username\":\"%s\" , \"userpwd\" : \"%s\"}",
+		getCurrentTime().c_str(), "BYDXL", "123456");
+	sioClient->emit("getUserInfo", content->getCString());
+
+}
+void MenuScene::onMessage(SIOClient* client, const std::string& data){
+	log(" MenuScene:: onMessage data = %s",data.c_str());
+	
+}
+void MenuScene::onClose(SIOClient* client){
+	log(" MenuScene:: onClose");
+}
+void MenuScene::onError(SIOClient* client, const std::string& data){
+	log(" MenuScene:: onError data = %s", data.c_str());
+}
+//回调
+void MenuScene::getUserInfo(SIOClient* client, const std::string& data){
+	log(" getUserInfo data = %s " , data.c_str() );
+
+
+
+}
+
+
+
+
+
 void MenuScene::onEnterTransitionDidFinish(){
 	if (UserDefault::getInstance()->getBoolForKey(MUSIC_KEY, true)){
 		SimpleAudioEngine::getInstance()->playBackgroundMusic("main_scene.mp3", true);
@@ -774,7 +811,6 @@ void MenuScene::cleanup(){
 		SimpleAudioEngine::getInstance()->stopBackgroundMusic("main_scene.mp3");
 	}
 }
-
 
 void MenuScene::onExit(){
 	Layer::onExit();
@@ -802,4 +838,20 @@ MenuScene::~MenuScene(){
 	userInfo = nullptr;
 }
 
-
+std::string MenuScene::getCurrentTime(){
+	struct tm *tm;
+	time_t timep;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32)
+	time(&timep);
+#else
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	timep = tv.tv_sec;
+#endif
+	tm = localtime(&timep);
+	int year = tm->tm_year + 1900;//年
+	int month = tm->tm_mon + 1;//月
+	int day = tm->tm_mday;//日
+	__String * mTime = __String::createWithFormat("%d - %d - %d", year, month, day);
+	return mTime->getCString();
+}

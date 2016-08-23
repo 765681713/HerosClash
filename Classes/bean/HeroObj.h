@@ -46,6 +46,10 @@ public:
 	void setIndexY(int indexY);
 	int getId();
 	int getHeroACT();
+	int getHeroHP();
+	int * getHeroATK();
+	void setHeroHP(int hp);
+	void setHeroATK(int atk);
 	Node * getMCurrentNode();
 	void addNode(Layout * layout, Node * node);
 	void setAction(ActionTimeline * action);
@@ -57,10 +61,15 @@ public:
 
 	void prepare(bool showNum);
 	void def();
-	void attact(HeroObj * targetHero, bool isCallFun, std::function<void()> callFun);
+	//HeroObj * targetHero,int count, bool isCallFun, std::function<void()> callFun
+	void atkEnemy(int width,int height,int index);//不同的攻击类型 不同的开始
+	bool collision(HeroObj * target);
+	void attack(HeroObj * target, bool isAtt);//不同的攻击类型 不同的攻击检测 bool  是否真实攻击 少血的
 	void updateRound();
+	void updateATK();
 	void hit(int * atk);
 	void death();
+	Node * getMWuQi();
 
 
 public :
@@ -69,6 +78,7 @@ public :
 private:
 	Layout * mCurrentLayout;
 	Node * mCurrentNode;
+	Node * mWuQi;
 	int id = 0;
 	int indexX = 0;
 	int indexY = 0;
@@ -81,6 +91,8 @@ private:
 	int mCurrentADD = 0;
 	int mCurrentACT = 0;
 	double mCurrentDouble = 0;
+
+	bool isAttacking = false;
 };
 
 #endif
