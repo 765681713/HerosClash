@@ -15,6 +15,9 @@
 #define heroW   60
 #define heroH   55
 #define Multiple 3
+#define ZhanShiAtkActionTag 101
+#define FaShiAtkActionTag 102
+#define GJSAtkActionTag 103
 
 USING_NS_CC;
 using namespace ui;
@@ -35,9 +38,10 @@ class HeroObj : public Ref
 {
 public:
 	CC_SYNTHESIZE(int, positionX, positionX);
+	CC_SYNTHESIZE(int, targetPosX, TargetPosX);
 	CC_SYNTHESIZE(int, positionY, positionY);
+	CC_SYNTHESIZE(int, targetPosY, TargetPosY);
 	CC_SYNTHESIZE(bool, isMonster, IsMonster);
-	CC_SYNTHESIZE(BaseHeroes *, hero, Hero);
 	CREATE_FUNC(HeroObj);
 	virtual bool init();
 	int getIndexX();
@@ -47,9 +51,13 @@ public:
 	int getId();
 	int getHeroACT();
 	int getHeroHP();
-	int * getHeroATK();
+	int getHeroDEF();
+	int getHeroATK();
 	void setHeroHP(int hp);
 	void setHeroATK(int atk);
+	void setHero(BaseHeroes * h);
+	BaseHeroes * getHero();
+
 	Node * getMCurrentNode();
 	void addNode(Layout * layout, Node * node);
 	void setAction(ActionTimeline * action);
@@ -58,23 +66,22 @@ public:
 	HeroActionType getActionType();
 	void removeNode();
 	HeroObj * cloneThis(int indexX);
-
+	BaseHeroes * hero;
 	void prepare(bool showNum);
 	void def();
 	//HeroObj * targetHero,int count, bool isCallFun, std::function<void()> callFun
-	void atkEnemy(int width,int height,int index);//不同的攻击类型 不同的开始
+	void atkEnemy(std::function<void()> hitWall);//不同的攻击类型 不同的开始
 	bool collision(HeroObj * target);
-	void attack(HeroObj * target, bool isAtt);//不同的攻击类型 不同的攻击检测 bool  是否真实攻击 少血的
+	void attack(std::function<void(Node *)> callback, std::function<void()> hitWall);//不同的攻击类型 不同的攻击检测 bool  是否真实攻击 少血的
 	void updateRound();
 	void updateATK();
-	void hit(int * atk);
 	void death();
 	Node * getMWuQi();
 
 
 public :
 	bool isClone = false;
-	
+	bool isAttacking = false;
 private:
 	Layout * mCurrentLayout;
 	Node * mCurrentNode;
@@ -83,7 +90,7 @@ private:
 	int indexX = 0;
 	int indexY = 0;
 	ActionTimeline* mCurrentAction;
-	HeroActionType mActionType;
+	HeroActionType mActionType = HeroActionType::Run;
 
 	int mCurrentHP = 0;
 	int mCurrentATK = 0;
@@ -92,7 +99,7 @@ private:
 	int mCurrentACT = 0;
 	double mCurrentDouble = 0;
 
-	bool isAttacking = false;
+	
 };
 
 #endif

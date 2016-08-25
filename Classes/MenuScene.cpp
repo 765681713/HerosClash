@@ -299,6 +299,8 @@ void MenuScene::decodeHeroList(){
 				hero->setIcon(icon.GetString());
 				hero->setLevel(1);
 				hero->setEXP(0);
+				hero->setAtkEffect(heroValue["atkEffect"].GetString());
+				hero->setSkillEffect(heroValue["skillEffect"].GetString());
 				mHeroes.push_back(hero);
 			}
 		}

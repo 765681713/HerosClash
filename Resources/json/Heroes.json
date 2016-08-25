@@ -14,7 +14,9 @@
         "double": 0.2,
         "skill": 10001,
 		"type":0,
-        "icon": "hero_zhanshi_1_icon.png"
+        "icon": "hero_zhanshi_1_icon.png",
+		"atkEffect":"ZhanShiAtkEffect1",
+		"skillEffect":""
     },
     "2002": {
         "id": 2002,
@@ -31,7 +33,9 @@
         "double": 0.2,
         "skill": 10001,
 		"type":1,
-        "icon": "hero_fashi_1_icon.png"
+        "icon": "hero_fashi_1_icon.png",
+		"atkEffect":"FaShiAtkEffect1",
+		"skillEffect":""
     },
     "2003": {
         "id": 2003,
@@ -48,7 +52,9 @@
         "double": 0.2,
         "skill": 10001,
 		"type":2,
-        "icon": "hero_gongjianshou_1_icon.png"
+        "icon": "hero_gongjianshou_1_icon.png",
+		"atkEffect":"GongJianShouAtkEffect1",
+		"skillEffect":""
     },
     "2004": {
         "id": 2004,
@@ -65,7 +71,9 @@
         "double": 0.2,
         "skill": 10001,
 		"type":0,
-        "icon": ""
+        "icon": "",
+		"atkEffect":"",
+		"skillEffect":""
     },
     "2005": {
         "id": 2005,
@@ -82,7 +90,9 @@
         "double": 0.2,
         "skill": 10001,
 		"type":1,
-        "icon": ""
+        "icon": "",
+		"atkEffect":"",
+		"skillEffect":""
     },
     "2006": {
         "id": 2006,
@@ -99,6 +109,8 @@
         "double": 0.2,
         "skill": 10001,
 		"type":2,
-        "icon": ""
+        "icon": "",
+		"atkEffect":"",
+		"skillEffect":""
     }
 }

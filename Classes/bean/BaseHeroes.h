@@ -35,7 +35,12 @@ public:
 		"round" : 2,
 		"aAtk" : 2,
 		"double" : 0.2,
-		"skill" : 10001*/
+		"skill" : 10001
+		"type":0,
+        "icon": "hero_zhanshi_1_icon.png",
+		"atkEffect":"ZhanShiAtkEffect1",
+		"skillEffect":""
+		*/
 
 	CC_SYNTHESIZE(int, id, Id);
 	CC_SYNTHESIZE(std::string, name, Name);
@@ -50,8 +55,11 @@ public:
 	CC_SYNTHESIZE(int, aAtk, AAtk);//每回合攻击增加 （物理和法术共加） 
 	CC_SYNTHESIZE(double, doubleAtk, DoubleAtk);//双倍攻击的概率
 	CC_SYNTHESIZE(int, skill, Skill);//一个技能（ID）
-	CC_SYNTHESIZE(HeroType, type, Type);
-	CC_SYNTHESIZE(HeroAtkType, atkType, AtkType);
+	CC_SYNTHESIZE(HeroType, type, Type);//是不是Boss
+	CC_SYNTHESIZE(HeroAtkType, atkType, AtkType);//攻击类型
+	CC_SYNTHESIZE(std::string, atkEffect, AtkEffect);//攻击效果
+	CC_SYNTHESIZE(std::string, skillEffect, SkillEffect);//技能效果
+
 };
 
 

@@ -10,7 +10,10 @@
 #include "bean\AI.h"
 #include "bean\HeroObj.h"
 //#include "editor-support/cocostudio/ActionTimeline/CCActionTimeline.h"
-#define RoundTime 30;
+#define RoundTime 30
+#define SwapActionTag 1001
+#define HeroRunActionTag 1002
+#define HeroEnterActionTag 1003
 
 USING_NS_CC;
 using namespace ui;
@@ -39,10 +42,12 @@ public:
 	void heroEntry();
 	void heroCountLCallBack(Ref * ref);
 	void monsterEntry();
-	void mHeroPrepareAndDef(); 
+	void mHeroPrepareAndDef(bool isClick);
 	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
 	void mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
 	void swapHeroPosition(HeroObj * from, HeroObj * to);
+	void runHeroPosition();
+	void showCupBlood(int cupBlood, int posX, int posY, int zOder);
 
 	bool onTouchBegan(Touch * pTouch, Event * pEvent);
 	void onTouchMoved(Touch * pTouch, Event * pEvent);
@@ -59,6 +64,8 @@ private:
 	bool isActionRuning = false;
 	bool isLongPress = false;
 	bool isAiRound;
+	bool isMWinGame = false;
+	bool isMonsterWinGame = false;
 	static const int AllHeroCount = MAX_ROW * MAX_COLUMN;
 
 	int mCurrentHP = 0;
@@ -83,14 +90,11 @@ private:
 	std::vector<Heroes *> baseHeroes;
 	std::vector<Monster *> baseMonsters;
 	std::vector<std::vector<HeroObj * >> prepareHeroes;
-	std::vector<std::vector<HeroObj * >> attackingHeroes;
-	std::vector<std::vector<HeroObj * >> attackingMonster;
+	std::vector<std::vector<HeroObj * >> prepareMonster;
 
 	AI * monstersAI;
 	HeroObj * mHeros[AllHeroCount];
 	HeroObj * monsterHeros[AllHeroCount];
-	std::vector<HeroObj * > preAttackHeroes;//用一个英雄作为攻击
-	std::vector<HeroObj * > preAttackMonster;
 
 	EventDispatcher * eventDispatcher;
 

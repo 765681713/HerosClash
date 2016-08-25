@@ -13,7 +13,9 @@
         "aAtk": 2,
         "double": 0.2,
         "skill": 10001,
-        "icon": "hero_zhanshi_1_icon.png"
+        "icon": "hero_zhanshi_1_icon.png",
+		"atkEffect":"ZhanShiAtkEffect1",
+		"skillEffect":""
     },
     "3002": {
         "id": 3002,
@@ -29,7 +31,9 @@
         "aAtk": 2,
         "double": 0.2,
         "skill": 10001,
-        "icon": "hero_fashi_1_icon.png"
+        "icon": "hero_fashi_1_icon.png",
+		"atkEffect":"FaShiAtkEffect1",
+		"skillEffect":""
     },
     "3003": {
         "id": 3003,
@@ -45,6 +49,8 @@
         "aAtk": 2,
         "double": 0.2,
         "skill": 10001,
-        "icon": "hero_gongjianshou_1_icon.png"
+        "icon": "hero_gongjianshou_1_icon.png",
+		"atkEffect":"GongJianShouAtkEffect1",
+		"skillEffect":""
     }
 }

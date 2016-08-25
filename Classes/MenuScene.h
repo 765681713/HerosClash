@@ -61,10 +61,10 @@ public:
 	void onBeiBaoLanClick();
 
 	//Á¬Íø
-	virtual void onConnect(SIOClient* client);
-	virtual void onMessage(SIOClient* client, const std::string& data);
-	virtual void onClose(SIOClient* client);
-	virtual void onError(SIOClient* client, const std::string& data);
+	virtual void onConnect(SIOClient* client) override;
+	virtual void onMessage(SIOClient* client, const std::string& data) override;
+	virtual void onClose(SIOClient* client) override;
+	virtual void onError(SIOClient* client, const std::string& data) override;
 	//»Øµ÷
 	virtual void getUserInfo(SIOClient* client, const std::string& data);
 

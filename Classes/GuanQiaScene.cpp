@@ -396,6 +396,8 @@ void GuanQiaScene::decodeMonsterJson(){
 				monster->setSkill(skill.GetInt());
 				monster->setIcon(icon.GetString());
 				monster->setLevel(1);
+				monster->setAtkEffect(monsterValue["atkEffect"].GetString());
+				monster->setSkillEffect(monsterValue["skillEffect"].GetString());
 				mCurrentMonsters.push_back(monster);
 			}
 		}

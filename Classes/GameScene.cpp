@@ -84,13 +84,18 @@ bool GameScene::init(){
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist");
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist");
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
-		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName())->getCString();
+		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName().c_str())->getCString();
+		std::string atkEffectFileName = String::createWithFormat("%s.plist", (*heros)->getAtkEffect().c_str())->getCString();
 		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(heroesFileName.c_str());
+		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(atkEffectFileName.c_str());
 	}
 	for (auto monster = baseMonsters.begin(); monster != baseMonsters.end(); monster++){
-		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName())->getCString();
+		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName().c_str())->getCString();
+		std::string atkEffectFileName = String::createWithFormat("%s.plist", (*monster)->getAtkEffect().c_str())->getCString();
 		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(heroesFileName.c_str());
+		SpriteFrameCache::getInstance()->addSpriteFramesWithFile(atkEffectFileName.c_str());
 	}
+
 	for (int i = 0; i < MAX_ROW; i++){
 		for (int j = 0; j < MAX_COLUMN; j++){
 			mHeros[i*MAX_ROW + j] = nullptr;
@@ -102,12 +107,12 @@ bool GameScene::init(){
 		}
 	}
 	mCurrentHP = mUserInfo->getHP();
-	mCurrentMP = mUserInfo->getMP();
+	mCurrentMP = 5;
 	mDEF = mUserInfo->getDEF();
 	secCurrentTime = RoundTime;
 	mActCount = mUserInfo->getACT();
 	monsterCurrentHP = monstersAI->getHP();
-	monsterCurrentMP = monstersAI->getMP();
+	monsterCurrentMP = 5;
 	monsterDEF = monstersAI->getDEF();
 	monsterActCount = monstersAI->getACT();
 	updateUi();
@@ -116,7 +121,7 @@ bool GameScene::init(){
 
 void GameScene::onEnter(){
 	Layer::onEnter();
-
+	isMWinGame = false;
 	this->scheduleUpdate();
 }
 
@@ -138,6 +143,9 @@ void GameScene::updateUi(){
 	updateHeroCount();
 	updateHPMP();
 	updateHeroAct();
+	if (!isAiRound && isInit){
+		runHeroPosition();
+	}
 }
 
 void GameScene::updateActTime(){
@@ -161,12 +169,29 @@ void GameScene::updateHeroCount(){
 }
 
 void  GameScene::updateHPMP(){
-	mHPLoadingBar->setPercent(mCurrentHP / mUserInfo->getHP() * 100);
-	mMPLoadingBar->setPercent(mCurrentMP / mUserInfo->getMP() * 100);
+	if (mCurrentHP <= 0){
+		mCurrentHP = 0;
+		isMonsterWinGame = true;
+	}
+	if (monsterCurrentHP <= 0){
+		monsterCurrentHP = 0;
+		isMWinGame = true;
+		log(" mWinGame ");
+		monsterHPAtlas->runAction(Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
+			unschedule(schedule_selector(GameScene::aiSchedule));
+			unscheduleUpdate();
+		}), NULL));
+	}
+	float mHp = (float)mCurrentHP / mUserInfo->getHP();
+	float mMp = (float)mCurrentMP / mUserInfo->getMP();
+	float mosHp = (float)monsterCurrentHP / monstersAI->getHP();
+	float mosMp = (float)monsterCurrentMP / monstersAI->getMP();
+	mHPLoadingBar->setPercent(mHp * 100);
+	mMPLoadingBar->setPercent(mMp * 100);
 	mHPAtlas->setString(String::createWithFormat("%d/%d", mCurrentHP, mUserInfo->getHP())->getCString());
 	mMPAtlas->setString(String::createWithFormat("%d/%d", mCurrentMP, mUserInfo->getMP())->getCString());
-	monsterHPLoadingBar->setPercent(monsterCurrentHP / monstersAI->getHP() * 100);
-	monsterMPLoadingBar->setPercent(monsterCurrentMP / monstersAI->getMP() * 100);
+	monsterHPLoadingBar->setPercent(mosHp * 100);
+	monsterMPLoadingBar->setPercent(mosMp * 100);
 	monsterHPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentHP, monstersAI->getHP())->getCString());
 	monsterMPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentMP, monstersAI->getMP())->getCString());
 }
@@ -182,18 +207,23 @@ void GameScene::updateHeroAct(){
 				hero->updateRound();
 			}
 			if (hs.at(0)->getHeroACT() == 0){
+				isActionRuning = true;
 				for (unsigned int i = 0; i < hs.size(); i++){
 					auto heroObj = hs.at(i);
-					if (i == 0){
-						//把第一个英雄放到碰撞集合中
-						preAttackHeroes.push_back(heroObj);
-					}
-					heroObj->atkEnemy(mSceneSize.width,mSceneSize.height,i);
+					heroObj->atkEnemy([=](){
+						heroObj->attack([=](Node * node){
+							//打墙
+							if (i == 0){
+								int hp = heroObj->getHeroATK() - monsterDEF;
+								monsterCurrentHP = monsterCurrentHP - hp;
+								showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), heroObj->getIndexY());
+								updateHPMP();
+							}
+							heroObj->setHeroHP(0);
+							heroObj->setHeroATK(0);
+						}, nullptr);
+					});
 				}
-				//添加到攻击列表中   删除准备列表中
-				attackingHeroes.push_back(hs);
-				//for (auto heros = (*heroes).begin();heroe)
-				//prepareHeroes.erase();
 			}
 		}
 	}
@@ -234,8 +264,8 @@ void GameScene::heroEntry(){
 					hero->runAction(action);
 					hObj->setAction(action);
 					hObj->runAction(HeroActionType::Run);
-					hero->runAction(Sequence::create(DelayTime::create(0.3f * j), MoveTo::create(0.2f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), 
-						CallFuncN::create([hObj](Node * node){
+					hero->runAction(Sequence::create(DelayTime::create(0.2f * j), MoveTo::create(0.2f * (MAX_COLUMN + 1 - j), Vec2(hObj->getpositionX(), hObj->getpositionY())), 
+						CallFuncN::create([=](Node * node){
 						hObj->runAction(HeroActionType::Stand);
 					}), NULL));
 					mHeros[index] = hObj;
@@ -592,7 +622,7 @@ bool GameScene::onTouchBegan(Touch * pTouch, Event * pEvent){
 		});
 		return true;
 	}
-	if (isActionRuning || isAiRound){
+	if (isActionRuning || isAiRound || mActCount <=0 ||isMWinGame || isMonsterWinGame){
 		return false;
 	}
 	Vec2 touch = pTouch->getLocation();
@@ -671,7 +701,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 				mHeros[indexXHero * MAX_COLUMN + index] = mCurrentHero;
 			}), CallFunc::create([=](){
 				//判断 准备和防御
-				mHeroPrepareAndDef();
+				mHeroPrepareAndDef(true);
 				mCurrentHero = nullptr;
 				isActionRuning = false;
 				
@@ -681,7 +711,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 }
 
 void GameScene::onLongTouchDown(float delay){
-	if (isAiRound){
+	if (isAiRound || mActCount <= 0 || isMWinGame || isMonsterWinGame){
 		return;
 	}
 	isLongPress = true;
@@ -713,14 +743,14 @@ void GameScene::onLongTouchDown(float delay){
 				}
 			}
 			//判断 准备和防御
-			mHeroPrepareAndDef();
+			mHeroPrepareAndDef(true);
 			//});
 			hero = nullptr;
 		}
 	}
 }
 
-void GameScene::mHeroPrepareAndDef(){
+void GameScene::mHeroPrepareAndDef(bool isClick){//判断是否人点击 runHeroPosition()  //计算行动次数
 	std::vector<std::vector<HeroObj *>> allHHeroes;
 	std::vector<std::vector<HeroObj *>> allVHeroes;
 	int id;
@@ -881,17 +911,18 @@ void GameScene::mHeroPrepareAndDef(){
 		//log(" allVHeroes ", allVHeroes.size());
 		mHeroDefAction(allVHeroes);
 	}
-	//回合过后不减
-	//次数减一
-	if (isAiRound){
-		monsterActCount--;
-		monsterActCount <= 0 ? updateUi() : updateActTime();
+	if (isClick){//是人单击就减少一次
+		//回合过后不减
+		//次数减一
+		if (isAiRound){
+			monsterActCount--;
+			monsterActCount <= 0 ? updateUi() : updateActTime();
+		}
+		else{
+			mActCount--;
+			mActCount <= 0 ? updateUi() : updateActTime();
+		}
 	}
-	else{
-		mActCount--;
-		mActCount <= 0 ? updateUi() : updateActTime();
-	}
-
 }
 
 void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
@@ -915,8 +946,15 @@ void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
 		from->setIndexX(from->getIndexX() - 1);
 		from->updateNode();
 		mHeros[from->getId()] = from;
-		from->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(heroW, 0)));
+		from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
 	}
+	//移动完后
+	stopActionByTag(SwapActionTag);
+	Action * action = Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
+		mHeroPrepareAndDef(false);
+	}), NULL);
+	action->setTag(SwapActionTag);
+	runAction(action);
 }
 
 void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes){
@@ -928,6 +966,8 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 				for (int j = 0; j < 3; j++){
 					//准备动画
 					heroes[j]->prepare(j == 1);
+					heroes[j]->setTargetPosX(mSceneSize.width - (j + 1) * heroW);
+					heroes[j]->setTargetPosY(heroes[j]->getpositionY());
 				}
 				//准备好后 移动
 				for (int i = heroes[0]->getIndexX() - 1; i >= 0; i--){
@@ -1007,90 +1047,197 @@ void GameScene::aiSchedule(float delay){
 }
 
 void GameScene::update(float dt){
-	if (!preAttackHeroes.empty()){
-		for (auto heroObj = preAttackHeroes.begin(); heroObj != preAttackHeroes.end();heroObj ++){
-			auto h = (*heroObj);
+
+	for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
+		auto monsterObj = monsterHeros[i];
+		if (monsterObj == nullptr){
+			continue;
+		}
+		if (monsterObj->getHeroHP() <= 0 || monsterObj->getHeroATK() <= 0){//敌人hp小于0
+			monsterObj->death();
+			monsterObj = nullptr;
+			monsterHeros[i] = nullptr;
+		}
+	}
+	bool heroIsDeath = false;
+	for (int i = 0; i < AllHeroCount; i++){ //遍历hero
+		auto hero = mHeros[i];
+		if (hero == nullptr){
+			continue;
+		}
+		if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hp小于0
+			//移除列表中的攻击duixiang
+			for (auto preHeroes = prepareHeroes.begin(); preHeroes != prepareHeroes.end();preHeroes++){
+				for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
+					if ((*atkHero)->getId() == hero->getId()){
+						(*preHeroes).clear();
+						break;
+					}
+				}
+				if ((*preHeroes).empty()){
+					prepareHeroes.erase(preHeroes);
+					break;
+				}
+			}
+			isActionRuning = false;
+			existHeroCount--;
+			updateHeroCount();
+			hero->death();
+			hero = nullptr;
+			mHeros[i] = nullptr;
+			heroIsDeath = true;
+		}
+	}
+	//有死亡
+	if (!isAiRound && heroIsDeath && !isActionRuning){
+		//移动完后
+		stopActionByTag(HeroRunActionTag);
+		Action * action = Sequence::create(DelayTime::create(0.2f), CallFunc::create([=](){
+			runHeroPosition();
+		}), NULL);
+		action->setTag(HeroRunActionTag);
+		runAction(action);
+	}
+
+	for (auto preHeroes : prepareHeroes){
+		for (auto atkHero : preHeroes){
+			if (atkHero->getHeroACT() > 0){
+				break;
+			}
+			isActionRuning = true;
 			for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
 				auto monsterObj = monsterHeros[i];
-				if (monsterObj == nullptr){
+				if (monsterObj == nullptr || atkHero == nullptr){
 					continue;
 				}
-				if (h->collision(monsterObj)){//如果碰撞
-					for (auto atting = attackingHeroes.begin(); atting != attackingHeroes.end(); atting++){
-						std::vector<HeroObj*> attVec = (*atting);
-						//遍历 攻击的英雄列表
-						if (attVec.at(0)->getId() == h->getId()){
-							h->attack(monsterObj, true);
-							if (attVec.size() >= 2){
-								attVec.at(1)->attack(monsterObj, false);
+				if (atkHero->collision(monsterObj)){//如果碰撞
+					if (preHeroes.size()>=1){//看看准备的对象中是否大于一个
+						HeroObj * h1 = preHeroes.at(0);//获取这个主要的对象 通过他的攻击hp 改变其他的对象
+						h1->attack([=](Node * node){
+							int hp = h1->getHeroATK() - monsterObj->getHeroHP() - monsterObj->getHeroDEF();//攻击-血量和防御
+							int monsHp = -hp;//怪物血量相反
+							if (hp < 0){
+								hp = 0;
 							}
-							if (attVec.size() >= 3){
-								attVec.at(2)->attack(monsterObj, false);
+							if (monsHp < 0){
+								monsHp = 0;
 							}
-							//攻击
-							//找到攻击的那个英雄 同事修改其他（一组内的攻击力）
-							for (auto attHero : attVec){
-								attHero->setHeroHP(h->getHeroHP());
-								attHero->setHeroATK(*(h->getHeroATK()));
-								attHero->updateATK();//更新 攻击条
+							int atkHp = monsterObj->getHeroHP() - monsHp;
+							showCupBlood(atkHp, node->getPositionX(), node->getPositionY(), monsterObj->getIndexY());
+							//h1->setHeroHP(hp);
+							h1->setHeroATK(hp);
+							h1->updateATK();
+							monsterObj->setHeroHP(monsHp);
+							if (preHeroes.size() >= 2){//修改次要的对象
+								HeroObj * h2 = preHeroes.at(1);
+								//h2->setHeroHP(hp);
+								h2->setHeroATK(hp);
+								h2->updateATK();
 							}
-							break;
+							if (preHeroes.size() >= 3){
+								HeroObj * h3 = preHeroes.at(2);
+								//h3->setHeroHP(hp);
+								h3->setHeroATK(hp);
+							}
+						}, [=](){
+							h1->attack( [=](Node * node){
+								int hp = h1->getHeroATK() - monsterDEF;
+								//打墙
+								h1->setHeroHP(0);
+								h1->setHeroATK(0);
+								monsterCurrentHP = monsterCurrentHP - hp;
+								showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
+								updateHPMP();
+							}, nullptr);
+						});
+						if (preHeroes.size() >= 2){//次要对象跟随动作
+							HeroObj * h2 = preHeroes.at(1);
+							h2->attack(nullptr, [=](){
+								h2->attack([=](Node * node){
+									//打墙
+									h2->setHeroHP(0);
+									h2->setHeroATK(0);
+								}, nullptr);
+							});
 						}
-						if (h->getHeroATK() <= 0){
-							//移除攻击列表中的
-							attackingHeroes.erase(atting);
-							preAttackHeroes.erase(heroObj);
-							h = nullptr;
+						if (preHeroes.size() >= 3){
+							HeroObj * h3 = preHeroes.at(2);
+							h3->attack(nullptr, [=](){
+								h3->attack([=](Node * node){
+									//打墙
+									h3->setHeroHP(0);
+									h3->setHeroATK(0);
+								}, nullptr);
+							});
 						}
 					}
 				}
 			}
-			
-			//
-			if (h != nullptr && h->getMWuQi()->getPosition().x + heroW >= mSceneSize.width - heroW){
-				
-			}
-
-			
-		}
-
-		for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
-			auto monsterObj = monsterHeros[i];
-			if (monsterObj == nullptr){
-				continue;
-			}
-			if (monsterObj->getHeroHP() <= 0 || monsterObj->getHeroATK() <= 0){//敌人hp小于0
-				monsterObj->death();
-				monsterObj = nullptr;
-				monsterHeros[i] = nullptr;
-			}
-		}
-
-		for (int i = 0; i < AllHeroCount; i++){ //遍历hero
-			auto hero = mHeros[i];
-			if (hero == nullptr){
-				continue;
-			}
-			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hp小于0
-				hero->death();
-				hero = nullptr;
-				mHeros[i] = nullptr;
-			}
 		}
 	}
-
-	if (!preAttackMonster.empty()){
-		
-	}
-
+	//判断怪物
 	
 }
 
 void GameScene::heroCountLCallBack(Ref * ref){
-	if (existHeroCount < mUserInfo->getHeroesCount() && !isAiRound){
+	if (existHeroCount < mUserInfo->getHeroesCount() && !isAiRound && mActCount >= 1){
 		heroEntry();
-		updateHeroCount();
+		stopActionByTag(HeroEnterActionTag);
+		Action * action = Sequence::create(DelayTime::create(2), CallFunc::create([=](){
+			mHeroPrepareAndDef(true);
+			if (mActCount == 0){
+				//移动完后
+				updateUi();
+			}
+			else{
+				updateHeroCount();
+			}
+		}), NULL);
+		action->setTag(HeroEnterActionTag);
+		runAction(action);
 	}
+}
+
+void GameScene::runHeroPosition(){
+	for (int i = 0; i < MAX_ROW; i++){//正着来吧
+		for (int j = 1; j < MAX_COLUMN; j++){
+			int index = j * MAX_ROW + i;
+			int nexIndex = index - MAX_ROW;
+			if (mHeros[index] != nullptr){
+				if (mHeros[nexIndex] == nullptr){
+					for (int k = j; k > 0; k--){
+						int posIndex = k * MAX_ROW + i;
+						int lastPosIndex = (k - 1)* MAX_ROW + i;
+						if (mHeros[lastPosIndex] == nullptr){
+							swapHeroPosition(mHeros[posIndex], nullptr);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void GameScene::showCupBlood(int cupBlood,int posX,int posY,int zOder){
+	
+	
+	std::string atkStr = String::createWithFormat("%d", cupBlood)->getCString();
+	TextAtlas * atkAtlas = TextAtlas::create(atkStr, "atk_hp_num.png", 30, 35, ".");
+	atkAtlas->setAnchorPoint(Vec2(0.5, 0.5));
+	atkAtlas->setPosition(Vec2(posX, posY));
+	int x = CCRANDOM_0_1() * 30;
+	int y = CCRANDOM_0_1() * 30;
+	if (CCRANDOM_0_1() >= 0.5){
+		x = -x;
+	}
+	if (CCRANDOM_0_1() >= 0.5){
+		y = -y;
+	}
+	atkAtlas->runAction(Sequence::create(MoveBy::create(0.3f, Vec2(x, y)), MoveBy::create(0.3f, Vec2(-y, x))
+		, FadeOut::create(0.3f), CallFuncN::create([](Node * node){
+		node->removeFromParentAndCleanup(true);
+	}), NULL));
+	gameSceneLayout->addChild(atkAtlas, zOder);
 }
 
 void GameScene::onExit(){
@@ -1100,14 +1247,14 @@ void GameScene::onExit(){
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
 		//(*heros)->setType((HeroType)index);
 		index++;
-		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName())->getCString();
+		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName().c_str())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
 	index = 0;
 	for (auto monster = baseMonsters.begin(); monster != baseMonsters.end(); monster++){
 		//(*monster)->setType((HeroType)index);
 		index++;
-		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName())->getCString();
+		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName().c_str())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
 	unschedule(schedule_selector(GameScene::aiSchedule));

@@ -48,7 +48,9 @@ int HeroObj::getHeroACT(){
 int HeroObj::getHeroHP(){
 	return mCurrentHP;
 }
-
+int HeroObj::getHeroDEF(){
+	return mCurrentDEF;
+}
 void HeroObj::setHeroHP(int hp){
 	this->mCurrentHP = hp;
 }
@@ -56,8 +58,21 @@ void HeroObj::setHeroATK(int atk){
 	this->mCurrentATK = atk;
 }
 
-int * HeroObj::getHeroATK(){
-	return &mCurrentATK;
+int HeroObj::getHeroATK(){
+	return mCurrentATK;
+}
+
+void HeroObj::setHero(BaseHeroes * h){
+	this->hero = h;
+	mCurrentHP = h->getHP();
+	mCurrentATK = h->getSAtk() + h->getPAtk();
+	mCurrentDEF = h->getSDef() + h->getPDef();
+	mCurrentADD = h->getAAtk();
+	mCurrentACT = h->getRound();
+	mCurrentDouble = h->getDoubleAtk();
+}
+BaseHeroes * HeroObj::getHero(){
+	return this->hero;
 }
 
 Node * HeroObj::getMCurrentNode(){
@@ -71,6 +86,7 @@ Node * HeroObj::getMWuQi(){
 void HeroObj::addNode(Layout * layout, Node * node){
 	this->mCurrentLayout = layout;
 	this->mCurrentNode = node;
+	this->mWuQi = this->mCurrentNode;
 	mCurrentLayout->addChild(mCurrentNode, indexY, id);
 }
 
@@ -114,7 +130,6 @@ void HeroObj::runAction(HeroActionType actionType){
 		mCurrentAction->gotoFrameAndPlay(0, false);
 		break;
 	}
-
 }
 
 void HeroObj::updateNode(){
@@ -254,88 +269,103 @@ void HeroObj::updateATK(){
 		std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
 		atkAtlas->setString(atk);
 		ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(300));
-		int hp = mCurrentATK * 100 / (mCurrentATK + mCurrentACT * mCurrentADD);
+		int hp = mCurrentATK * 100 / mCurrentHP;
 		atkPro->setPercentage(hp);
 	}
 }
 
-void HeroObj::hit(int * atk){
-	if ((*atk) >= mCurrentHP + mCurrentDEF){
-		//
-		(*atk) = (*atk) - mCurrentHP - mCurrentDEF;
-		mCurrentHP = 0;
-	}
-	else if((*atk) <= mCurrentDEF){
-		//显示0 
-		(*atk) = 0;
-		return;
-	}
-	else {
-		//
-		mCurrentHP = mCurrentHP + mCurrentDEF - (*atk);
-		if (mActionType == HeroActionType::Prepare){
-			mCurrentATK = mCurrentHP;
-			if (mCurrentNode->getChildren().size() > 2){
-				TextAtlas * atkAtlas = static_cast<TextAtlas *>(mCurrentNode->getChildByTag(1));
-				std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
-				atkAtlas->setString(atk);
-				ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(3));
-				atkPro->setPercentage((int(mCurrentATK / (mCurrentATK + mCurrentACT * mCurrentADD) * 100)));
-			}
-		}
-		(*atk) = 0;
-	}
-}
-
 //HeroObj * targetHero, int count, bool isCallFun, std::function<void()> callFun
-void HeroObj::atkEnemy(int width, int height, int index){
+void HeroObj::atkEnemy(std::function<void()> hitWall){
 	//隐藏行动text
 	//判断英雄类型  攻击动画
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
-		mWuQi = mCurrentNode;
 		runAction(HeroActionType::Run);
-		float time = 0.1 * (this->indexX + MAX_COLUMN + 3);//中间 和两边的移动时间
-		int didtanceX = !isMonster ? width - (index + 1) * heroW : 0 + (index + 1) * heroW;
-		auto action = Sequence::create(MoveTo::create(time, Vec2(didtanceX, positionY)), NULL);
-		action->setTag(111);
-		mCurrentNode->runAction(action);
+		float time = 0.1 * (abs(mWuQi->getPosition().x - targetPosX) / heroW);//从现在的位置到两边的移动时间
+		auto action = Sequence::create(MoveTo::create(time, Vec2(targetPosX, targetPosY)), CallFunc::create(hitWall), NULL);
+		action->setTag(ZhanShiAtkActionTag);
+		mWuQi->runAction(action);
 		break;
 	}
 	case HeroAtkType::FaShi:{
-		mWuQi = mCurrentNode;
+
+		std::string wuQiName = String::createWithFormat("%s.csb", hero->getAtkEffect().c_str())->getCString();
+		mWuQi = CSLoader::createNode(wuQiName.c_str());
+		mWuQi->setPosition(positionX + heroW/2, positionY);
+		mWuQi->setRotation(-90);
+		mWuQi->setVisible(false);
+		mCurrentLayout->addChild(mWuQi, indexY, 100 + id);
+		//出场动画
+		ActionTimeline * action = CSLoader::createTimeline(wuQiName.c_str());
+		mWuQi->runAction(action);
+		runAction(HeroActionType::Attack);
+		mCurrentAction->setLastFrameCallFunc([=](){
+			action->gotoFrameAndPlay(0,true);
+			mWuQi->setVisible(true);
+			float time = 0.1 * (abs(mWuQi->getPosition().x - targetPosX - heroW/ 2) / heroW);
+			auto action = Sequence::create(MoveTo::create(time, Vec2(targetPosX + heroW / 2, targetPosY)), CallFunc::create(hitWall), NULL);
+			action->setTag(FaShiAtkActionTag);
+			mWuQi->runAction(action);
+		});
 		break;
 	}
 	case HeroAtkType::GongJianShou:{
-		mWuQi = mCurrentNode;
+		std::string wuQiName = String::createWithFormat("%s.csb", hero->getAtkEffect().c_str())->getCString();
+		mWuQi = CSLoader::createNode(wuQiName.c_str());
+		mWuQi->setPosition(positionX+ heroW/2, positionY);
+		mWuQi->setRotation(-90);
+		mWuQi->setVisible(false);
+		mCurrentLayout->addChild(mWuQi, indexY, 100 + id);
+		//出场动画
+		ActionTimeline * action = CSLoader::createTimeline(wuQiName.c_str());
+		mWuQi->runAction(action);
+		runAction(HeroActionType::Attack);
+		mCurrentAction->setLastFrameCallFunc([=](){
+			action->gotoFrameAndPlay(0, true);
+			mWuQi->setVisible(true);
+			float time = 0.1 * (abs(mWuQi->getPosition().x - targetPosX - heroW / 2) / heroW);
+			auto action = Sequence::create(MoveTo::create(time, Vec2(targetPosX + heroW / 2, targetPosY)), CallFunc::create(hitWall), NULL);
+			action->setTag(GJSAtkActionTag);
+			mWuQi->runAction(action);
+		});
 		break;
 	}
 	case HeroAtkType::Other:{
-		mWuQi = mCurrentNode;
 		break;
 	}
 	}
 }
 
 bool HeroObj::collision(HeroObj * target){
+	if (target == nullptr || this->mWuQi == nullptr){
+		return false;
+	}
 	//不同的武器 不同的碰撞检测
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
-		if (mCurrentNode->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2
-			&& target->getMCurrentNode()->getPosition().y < mCurrentNode->getPosition().y + heroH / 2 &&
-			target->getMCurrentNode()->getPosition().y > mCurrentNode->getPosition().y - heroH / 2){
+		if (mWuQi->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2
+			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
 			return true;
 		}
 		return false;
 		break;
 	}
 	case HeroAtkType::FaShi:{
-
+		if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
+			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+			return true;
+		}
 		return false;
 		break;
 	}
 	case HeroAtkType::GongJianShou:{
-
+		if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
+			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+			return true;
+		}
 		return false;
 		break;
 	}
@@ -348,7 +378,7 @@ bool HeroObj::collision(HeroObj * target){
 	return false;
 }
 
-void HeroObj::attack(HeroObj * target , bool isAtt){
+void HeroObj::attack(std::function<void(Node *)> callback,std::function<void()> hitWall){
 	if (isAttacking){
 		return;
 	}
@@ -356,25 +386,52 @@ void HeroObj::attack(HeroObj * target , bool isAtt){
 	//用自己的武器攻击英雄
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
-		auto action = mCurrentNode->getActionByTag(111);
-		mCurrentNode->stopAction(action);
+		auto action = mWuQi->getActionByTag(ZhanShiAtkActionTag);
+		mWuQi->stopAction(action);
 		runAction(HeroActionType::Attack);
 		mCurrentAction->setLastFrameCallFunc([=](){
-			if (isAtt){
-				target->hit(&mCurrentATK);
+			
+
+			if (hitWall != nullptr){
+				runAction(HeroActionType::Run);
+				float time = 0.1 * (abs(mWuQi->getPosition().x - targetPosX) / heroW);//从现在的位置到两边的移动时间
+				auto action = Sequence::create(MoveTo::create(time, Vec2(targetPosX, targetPosY)), CallFunc::create(hitWall), NULL);
+				action->setTag(ZhanShiAtkActionTag);
+				mWuQi->runAction(action);
 			}
-			mCurrentNode->getActionManager()->resumeTarget(mCurrentNode);
-			//攻击后动画有问题
-			//mCurrentNode->runAction(action);
+			//回调更新血量
+			if (callback != nullptr){
+				/*std::string atkEffect = String::createWithFormat("%s.csb", hero->getAtkEffect().c_str())->getCString();
+				auto atkEffNode = CSLoader::createNode(atkEffect.c_str());
+				atkEffNode->setPosition(Vec2(mWuQi->getPosition().x + heroW, positionY));
+				ActionTimeline * effectAtk = CSLoader::createTimeline(atkEffect.c_str());
+				atkEffNode->runAction(effectAtk);
+				mCurrentLayout->addChild(atkEffNode, indexY);
+				effectAtk->gotoFrameAndPlay(0, false);
+				effectAtk->setLastFrameCallFunc([=](){
+					atkEffNode->removeFromParentAndCleanup(true);
+				});*/
+				callback(mWuQi);
+			}
 			isAttacking = false;
 			mCurrentAction->clearLastFrameCallFunc();
 		});
 		break;
 	}
 	case HeroAtkType::FaShi:{
+		//回调更新血量
+		if (callback != nullptr){
+			callback(mWuQi);
+		}
+		isAttacking = false;
 		break;
 	}
 	case HeroAtkType::GongJianShou:{
+		//回调更新血量
+		if (callback != nullptr){
+			callback(mWuQi);
+		}
+		isAttacking = false;
 		break;
 	}
 	case HeroAtkType::Other:{
@@ -384,10 +441,10 @@ void HeroObj::attack(HeroObj * target , bool isAtt){
 }
 
 void HeroObj::death(){
-	/*if (mWuQi != nullptr){
+	if (hero->getAtkType() != HeroAtkType::ZhanShi){
 		mWuQi->stopAllActions();
 		mWuQi->removeFromParentAndCleanup(true);
-	}*/
+	}
 	mCurrentNode->stopAllActions();
 	mCurrentNode->removeAllChildren();
 	mCurrentNode->removeFromParentAndCleanup(true);
