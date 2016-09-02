@@ -52,31 +52,17 @@ bool MenuScene::init(){
 	shiLian->setTag(MenuType::ScrollShiLianu);
 	eventDispatcher->addEventListenerWithSceneGraphPriority(spriteListener->clone(), shiLian);
 	//socketIO
-	sioClient = SocketIO::connect("http://localhost:3000", *this);
-	sioClient->setTag("BingYanDeXuanLv");
-	//回调
-	sioClient->on("getUserInfo",CC_CALLBACK_2(MenuScene::getUserInfo,this));
-
-
-	//LayoutInfo    
-	Layout * infoLayout = static_cast<Layout *>(sceneNode->getChildByName("LayoutInfo"));
-	infoLayout->addClickEventListener(CC_CALLBACK_1(MenuScene::onInfoLayoutClick, this));
-	//加载用户信息
-	decodeUserInfo();
-	decodeHeroList();
-	decodeWuPinList();
-	//InfoIcon InfoName  dengji_text
-	if (userInfo != nullptr){
-		//ImageView * infoIcon = static_cast<ImageView *> (infoLayout->getChildByName("InfoIcon"));
-		Text * infoName = static_cast<Text *>(infoLayout->getChildByName("InfoName"));
-		Text * infoLevel = static_cast<Text *>(infoLayout->getChildByName("dengji_text"));
-		//infoName->setString(userInfo->getName());
-		//infoLevel->setString(String::createWithFormat("%d", userInfo->getLevel())->getCString());
-	}
-
+	sioClient = SocketIO::connect(socketUrl, *this);
+	sioClient->setTag(userName);
+	sioClient->on(EmitEvent_UserInfo, CC_CALLBACK_2(MenuScene::getUserInfo, this));
+	sioClient->on(EmitEvent_HeroList, CC_CALLBACK_2(MenuScene::getHeroList, this));
+	sioClient->on(EmitEvent_WuPinList, CC_CALLBACK_2(MenuScene::getWuPinList, this));
+	sioClient->on(EmitEvent_UpdateHero, CC_CALLBACK_2(MenuScene::updateHeroInfo, this));
+	sioClient->on(EmitEvent_UpdateWuPinNum, CC_CALLBACK_2(MenuScene::updateWuPinNum, this));
+	
 	//最上方按钮
 	//gold_panel  add_gold  zuanshi_panel  add_zuanshi  tili_panel  add_tili
-	//qiandao_panel  huodong_panel  chongzhi_panel
+	//qiandao_panel  huodong_panel  chongzhi_panel  zuanshi_text
 	Layout * topLayout = static_cast<Layout *>(sceneNode->getChildByName("gold_panel"));
 	Button * addBtn = static_cast<Button *>(topLayout->getChildByName("add_gold"));
 	addBtn->addClickEventListener(CC_CALLBACK_1(MenuScene::onAddGoldClick, this));
@@ -88,7 +74,7 @@ bool MenuScene::init(){
 	addBtn->addClickEventListener(CC_CALLBACK_1(MenuScene::onAddTiLiClick, this));
 
 	//qiandao  huodong  监听
-	otherListener = EventListenerTouchOneByOne::create();
+	/*otherListener = EventListenerTouchOneByOne::create();
 	otherListener->setSwallowTouches(true);
 	otherListener->onTouchBegan = CC_CALLBACK_2(MenuScene::otherTouchBegan, this);
 	otherListener->onTouchEnded = CC_CALLBACK_2(MenuScene::otherTouchEnd, this);
@@ -100,7 +86,7 @@ bool MenuScene::init(){
 	eventDispatcher->addEventListenerWithSceneGraphPriority(otherListener->clone(), huoDongLayout);
 	auto chongZhiLayout = sceneNode->getChildByName("chongzhi_panel_0");
 	chongZhiLayout->setTag(MenuType::ChongZhi);
-	eventDispatcher->addEventListenerWithSceneGraphPriority(otherListener->clone(), chongZhiLayout);
+	eventDispatcher->addEventListenerWithSceneGraphPriority(otherListener->clone(), chongZhiLayout);*/
 
 	//qita_panel   yingxiong_panel  beibao_panel  renwu_panel  qita
 	auto otherNode = sceneNode->getChildByName("qita");
@@ -194,177 +180,6 @@ bool MenuScene::init(){
 	return true;
 }
 
-void MenuScene::decodeUserInfo(){
-	userInfo = UserInfo::create();
-	userInfo->retain();
-	Data data = FileUtils::getInstance()->getDataFromFile("JueSe.json");
-	std::string content = std::string((const char *)data.getBytes(), 0, data.getSize());
-	rapidjson::Document document;
-	document.Parse<0>(content.c_str());
-	if (!document.HasParseError()){
-		const rapidjson::Value & user = document["JueSe"];
-		const rapidjson::Value & id = user["id"];
-		userInfo->setId(id.GetInt());
-		const rapidjson::Value & level = user["level"];
-		userInfo->setLevel(level.GetInt());
-		const rapidjson::Value & icon = user["icon"];
-		userInfo->setIcon(icon.GetString());
-		const rapidjson::Value & name = user["name"];
-		userInfo->setName(name.GetString());
-		const rapidjson::Value & exp = user["exp"];
-		userInfo->setEXP(exp.GetString());
-		const rapidjson::Value & hp = user["hp"];
-		userInfo->setHP(hp.GetInt());
-		const rapidjson::Value & def = user["def"];
-		userInfo->setDEF(def.GetInt());
-		const rapidjson::Value & mp = user["mp"];
-		userInfo->setMP(mp.GetInt());
-		const rapidjson::Value & heroesCount = user["heroesCount"];
-		userInfo->setHeroesCount(heroesCount.GetInt());
-		const rapidjson::Value & act = user["act"];
-		userInfo->setACT(act.GetInt());
-		const rapidjson::Value & heroesId = user["heroesId"];
-		if (heroesId.IsArray()){
-			std::vector<int> heroes;
-			for (auto hero = heroesId.Begin(); hero != heroesId.End(); hero++){
-				heroes.push_back((*hero).GetInt());
-			}
-			userInfo->setHeroesId(heroes);
-		}
-		const rapidjson::Value & wupinId = user["wupinId"];
-		if (wupinId.IsArray()){
-			std::vector<int> wupins;
-			for (auto wupin = wupinId.Begin(); wupin != wupinId.End(); wupin++){
-				wupins.push_back((*wupin).GetInt());
-			}
-			userInfo->setWuPinId(wupins);
-		}
-	}
-}
-void MenuScene::decodeHeroList(){
-	std::vector<int> heroes = userInfo->getHeroesId();
-	Data data = FileUtils::getInstance()->getDataFromFile("Heroes.json");
-	std::string content = std::string((const char *)data.getBytes(), 0, data.getSize());
-	rapidjson::Document document;
-	document.Parse<0>(content.c_str());
-	if (!document.HasParseError() && heroes.size() > 0){
-		for (std::vector<int>::iterator heroe = heroes.begin(); heroe != heroes.end(); heroe++){
-			int id = *heroe;
-			std::string idStr = String::createWithFormat("%d", id)->getCString();
-			if (document.HasMember(idStr.c_str())){
-				const rapidjson::Value & heroValue = document[idStr.c_str()];
-				Heroes * hero = Heroes::create();
-				hero->retain();
-				const rapidjson::Value & id = heroValue["id"];
-				const rapidjson::Value & title = heroValue["title"];
-				const rapidjson::Value & name = heroValue["name"];
-				const rapidjson::Value & desc = heroValue["desc"];
-				const rapidjson::Value & hp = heroValue["hp"];
-				const rapidjson::Value & pAtk = heroValue["pAtk"];
-				const rapidjson::Value & sAtk = heroValue["sAtk"];
-				const rapidjson::Value & pDef = heroValue["pDef"];
-				const rapidjson::Value & sDef = heroValue["sDef"];
-				const rapidjson::Value & round = heroValue["round"];
-				const rapidjson::Value & aAtk = heroValue["aAtk"];
-				const rapidjson::Value & doubleAtk = heroValue["double"];
-				const rapidjson::Value & skill = heroValue["skill"];
-				const rapidjson::Value & icon = heroValue["icon"];
-				if (heroValue.HasMember("isBoss")){
-					bool isBoss = heroValue["isBoss"].GetBool();
-					hero->setType(isBoss ? HeroType::Boss : HeroType::Hero);
-				}
-				else{
-					hero->setType(HeroType::Hero);
-				}
-				if (heroValue.HasMember("type")){
-					int atkType = heroValue["type"].GetInt();
-					hero->setAtkType((HeroAtkType)atkType);
-				}
-				else{
-					hero->setAtkType(HeroAtkType::Other);
-				}
-				hero->setId(id.GetInt());
-				hero->setTitle(title.GetString());
-				hero->setName(name.GetString());
-				hero->setDesc(desc.GetString());
-				hero->setHP(hp.GetInt());
-				hero->setPAtk(pAtk.GetInt());
-				hero->setSAtk(sAtk.GetInt());
-				hero->setPDef(pDef.GetInt());
-				hero->setSDef(sDef.GetInt());
-				hero->setRound(round.GetInt());
-				hero->setAAtk(aAtk.GetInt());
-				hero->setDoubleAtk(doubleAtk.GetDouble());
-				hero->setSkill(skill.GetInt());
-				hero->setIcon(icon.GetString());
-				hero->setLevel(1);
-				hero->setEXP(0);
-				hero->setAtkEffect(heroValue["atkEffect"].GetString());
-				hero->setSkillEffect(heroValue["skillEffect"].GetString());
-				mHeroes.push_back(hero);
-			}
-		}
-	}
-}
-void MenuScene::decodeWuPinList(){
-	std::vector<int> wupins = userInfo->getWuPinId();
-	Data data = FileUtils::getInstance()->getDataFromFile("WuPin.json");
-	std::string content = std::string((const char *)data.getBytes(), 0, data.getSize());
-	rapidjson::Document document;
-	document.Parse<0>(content.c_str());
-	if (!document.HasParseError()){
-		for (std::vector<int>::iterator wupin = wupins.begin(); wupin != wupins.end(); wupin++){
-			int id = *wupin;
-			std::string idStr = String::createWithFormat("%d", id)->getCString();
-			if (document.HasMember(idStr.c_str())){
-				const rapidjson::Value & wupinValue = document[idStr.c_str()];
-				WuPin * wupin = WuPin::create();
-				wupin->retain();
-				const rapidjson::Value & id = wupinValue["id"];
-				const rapidjson::Value & title = wupinValue["title"];
-				const rapidjson::Value & name = wupinValue["name"];
-				const rapidjson::Value & desc = wupinValue["desc"];
-				const rapidjson::Value & icon = wupinValue["icon"];
-				const rapidjson::Value & proterties = wupinValue["proterties"];
-				wupin->setId(id.GetInt());
-				wupin->setTitle(title.GetString());
-				wupin->setName(name.GetString());
-				wupin->setDesc(desc.GetString());
-				wupin->setIcon(icon.GetString());
-				if (proterties.HasMember("hp")){
-					const rapidjson::Value & hp = proterties["hp"];
-					wupin->proterties["hp"] = hp.GetInt();
-				}
-				if (proterties.HasMember("sAtk")){
-					const rapidjson::Value & sAtk = proterties["sAtk"];
-					wupin->proterties["sAtk"] = sAtk.GetInt();
-				}
-				if (proterties.HasMember("pDef")){
-					const rapidjson::Value & pDef = proterties["pDef"];
-					wupin->proterties["pDef"] = pDef.GetInt();
-				}
-				if (proterties.HasMember("sDef")){
-					const rapidjson::Value & sDef = proterties["sDef"];
-					wupin->proterties["sDef"] = sDef.GetInt();
-				}
-				if (proterties.HasMember("round")){
-					const rapidjson::Value & round = proterties["round"];
-					wupin->proterties["round"] = round.GetInt();
-				}
-				if (proterties.HasMember("aAtk")){
-					const rapidjson::Value & aAtk = proterties["aAtk"];
-					wupin->proterties["aAtk"] = aAtk.GetInt();
-				}
-				if (proterties.HasMember("double")){
-					const rapidjson::Value & doubleAtk = proterties["double"];
-					wupin->proterties["double"] = doubleAtk.GetInt();
-				}
-				mWuPins.push_back(wupin);
-			}
-		}
-	}
-}
-
 //签到 huodong chongzhi 
 bool MenuScene::otherTouchBegan(Touch * touch, Event* ev){
 	auto targt = ev->getCurrentTarget();
@@ -390,7 +205,6 @@ void MenuScene::otherTouchEnd(Touch* touch, Event* ev){
 		targt->runAction(ScaleTo::create(0.1f, 1.0f));
 	}
 }
-
 
 //scorll 上的精灵监听
 bool MenuScene::spriteTouchBegan(Touch* touch, Event* ev){
@@ -672,13 +486,14 @@ void MenuScene::onInfoLayoutClick(Ref * ref){
 		Director::getInstance()->end();
 	});
 	if (userInfo != nullptr){
-		//ImageView * infoIcon = static_cast<ImageView *>(settingLayout->getChildByName("InfoIcon"));
+		ImageView * infoIcon = static_cast<ImageView *>(settingLayout->getChildByName("InfoIcon"));
 		Text * name = static_cast<Text *>(settingLayout->getChildByName("InfoName"));
 		Text * info = static_cast<Text *>(settingLayout->getChildByName("my_info"));
+		infoIcon->loadTexture(userInfo->getIcon(), TextureResType::LOCAL);
 		name->setString(userInfo->getName());
 		std::string infoStr;
-		infoStr = String::createWithFormat("Level: %d \nExp: %s \nHP: %d \nDEF: %d \nHeroCount: %d \nActCount: %d ",
-			userInfo->getLevel(), userInfo->getEXP().c_str(), userInfo->getHP(), userInfo->getDEF(), userInfo->getHeroesCount(), userInfo->getACT())->getCString();
+		infoStr = String::createWithFormat("Level: %d \nExp: %d/%d \nHP: %d \nDEF: %d \nHeroCount: %d \nActCount: %d ",
+			userInfo->getLevel(), userInfo->getEXP(), userInfo->getEXPNed(), userInfo->getHP(), userInfo->getDEF(), userInfo->getHeroesCount(), userInfo->getACT())->getCString();
 		info->setString(infoStr);
 	}
 
@@ -704,7 +519,6 @@ void MenuScene::onOtherBtnClick(Ref * ref){
 	layout->runAction(sequence);
 }
 
-
 //英雄列表
 void MenuScene::onYingXiongLanClick(){
 	Layout * heroLayout = static_cast<Layout *>(yingXiongLayout->getChildByName("HeroScrollViewL"));
@@ -718,7 +532,7 @@ void MenuScene::onYingXiongLanClick(){
 	yingXiongList->setInnerContainerSize(size);
 	yingXiongList->setClippingEnabled(true);
 	yingXiongList->setScrollBarEnabled(false);
-
+	//设置 标志 类型 tag
 	for (int i = 0; i < heroSize; i++){
 		auto node = CSLoader::createNode("HeroListItemLayer.csb");
 		Layout * itemLayout = static_cast<Layout *>(node->getChildByName("HeroListItemL"));
@@ -729,6 +543,28 @@ void MenuScene::onYingXiongLanClick(){
 		heroLevel->setString(level);
 		Text * heroName = static_cast<Text *>(itemLayout->getChildByName("HeroName"));
 		heroName->setString(title);
+		switch (h->getHTag()){
+		case 0:
+			itemLayout->getChildByName("HeroTag1")->setVisible(true);
+			itemLayout->getChildByName("HeroTag2")->setVisible(false);
+			itemLayout->getChildByName("HeroTag3")->setVisible(false);
+			break;
+		case 1:
+			itemLayout->getChildByName("HeroTag1")->setVisible(false);
+			itemLayout->getChildByName("HeroTag2")->setVisible(true);
+			itemLayout->getChildByName("HeroTag3")->setVisible(false);
+			break;
+		case 2:
+			itemLayout->getChildByName("HeroTag1")->setVisible(false);
+			itemLayout->getChildByName("HeroTag2")->setVisible(false);
+			itemLayout->getChildByName("HeroTag3")->setVisible(true);
+			break;
+		default:
+			itemLayout->getChildByName("HeroTag1")->setVisible(false);
+			itemLayout->getChildByName("HeroTag2")->setVisible(false);
+			itemLayout->getChildByName("HeroTag3")->setVisible(false);
+			break;
+		}
 
 		Layout * iconLayout = static_cast<Layout *>(itemLayout->getChildByName("HeroIconL"));
 		ImageView * icon = static_cast<ImageView *>(iconLayout->getChildByName("HeroIcon"));
@@ -764,48 +600,235 @@ void MenuScene::onBeiBaoLanClick(){
 		wupinIcon->setAnchorPoint(Vec2(0.5, 0.5));
 		wupinIcon->setPosition(Vec2(40,40));
 		wupinIcon->loadTexture(item->getIcon());
+		Text * text = Text::create();
+		text->setFontSize(22);
+		text->setString(String::createWithFormat("%d",item->getNum())->getCString());
+		text->setAnchorPoint(Vec2(1,0));
+		text->setPosition(Vec2(70, 5));
 		itemLayout->addChild(wupinIcon);
+		itemLayout->addChild(text);
 		itemLayout->setPosition(Vec2(i % 5 * (80 + 20), contantH - 80 - (80 + 20) * (int)(i / 5)));
 		wuPinList->addChild(itemLayout);
 	}
 
 }
 
-
 //连网
 void MenuScene::onConnect(SIOClient* client){
 	log(" MenuScene:: onConnect");
-	__String * content = __String::createWithFormat("{\"cdate\":\"%s\",\"username\":\"%s\" , \"userpwd\" : \"%s\"}",
-		getCurrentTime().c_str(), "BYDXL", "123456");
-	sioClient->emit("getUserInfo", content->getCString());
+	
 
 }
 void MenuScene::onMessage(SIOClient* client, const std::string& data){
-	log(" MenuScene:: onMessage data = %s",data.c_str());
-	
+	//log(" MenuScene:: onMessage data = %s",data.c_str());
 }
 void MenuScene::onClose(SIOClient* client){
 	log(" MenuScene:: onClose");
+	isLogin = false;
 }
 void MenuScene::onError(SIOClient* client, const std::string& data){
 	log(" MenuScene:: onError data = %s", data.c_str());
+	isLogin = false;
 }
 //回调
 void MenuScene::getUserInfo(SIOClient* client, const std::string& data){
-	log(" getUserInfo data = %s " , data.c_str() );
-
-
+	userInfo = UserInfo::create();
+	userInfo->retain();
+	rapidjson::Document document;
+	document.Parse<0>(data.c_str());
+	if (!document.HasParseError()){
+		int resultCode = document["resultCode"].GetInt();
+		if (resultCode == ResultCodeSuccess){
+			isLogin = true;
+			const rapidjson::Value & data = document["resultData"];
+			userInfo->setId(data["_fk"].GetString());
+			userInfo->setLevel(data["level"].GetInt());
+			userInfo->setTiLiNum(data["tiLiNum"].GetInt());
+			userInfo->setTiLiNumCount(data["tiLiNumCount"].GetInt());
+			userInfo->setZuanShiNum(data["zuanShiNum"].GetInt());
+			userInfo->setGlodNum(data["glodNum"].GetInt());
+			userInfo->setIcon(data["icon"].GetString());
+			userInfo->setName(data["name"].GetString());
+			userInfo->setEXP(data["expNow"].GetInt());
+			userInfo->setEXPNed(data["expNed"].GetInt());
+			userInfo->setHP(data["hp"].GetInt());
+			userInfo->setDEF(data["def"].GetInt());
+			userInfo->setMP(data["mp"].GetInt());
+			userInfo->setHeroesCount(data["heroesCount"].GetInt());
+			userInfo->setACT(data["act"].GetInt());
+		}
+	}
+	//LayoutInfo    
+	Layout * infoLayout = static_cast<Layout *>(sceneNode->getChildByName("LayoutInfo"));
+	infoLayout->addClickEventListener(CC_CALLBACK_1(MenuScene::onInfoLayoutClick, this));
+	if (userInfo != nullptr){
+		ImageView * infoIcon = static_cast<ImageView *> (infoLayout->getChildByName("InfoIcon"));
+		Text * infoName = static_cast<Text *>(infoLayout->getChildByName("InfoName"));
+		Text * infoLevel = static_cast<Text *>(infoLayout->getChildByName("dengji_text"));
+		infoName->setString(userInfo->getName());
+		infoLevel->setString(String::createWithFormat("%d", userInfo->getLevel())->getCString());
+		infoIcon->loadTexture(userInfo->getIcon(), TextureResType::LOCAL);
+		Text * goldText = static_cast<Text *>(sceneNode->getChildByName("gold_panel")->getChildByName("gole_text"));
+		goldText->setString(String::createWithFormat("%d",userInfo->getGlodNum())->getCString());
+		Text * zhuanShiText = static_cast<Text *>(sceneNode->getChildByName("zuanshi_panel")->getChildByName("zuanshi_text"));
+		zhuanShiText->setString(String::createWithFormat("%d", userInfo->getZuanShiNum())->getCString());
+		Text * tiLiText = static_cast<Text *>(sceneNode->getChildByName("tili_panel")->getChildByName("tili_text"));
+		tiLiText->setString(String::createWithFormat("%d/%d", userInfo->getTiLiNum(), userInfo->getTiLiNumCount())->getCString());
+		//加载英雄列表
+		__String * content = __String::createWithFormat("{\"_id\":\"%s\"}",userInfo->getId().c_str());
+		sioClient->emit(EmitEvent_HeroList, content->getCString());
+		//加载物品列表
+		content = __String::createWithFormat("{\"_id\":\"%s\"}", userInfo->getId().c_str());
+		sioClient->emit(EmitEvent_WuPinList, content->getCString());
+	}
 
 }
 
+void MenuScene::getHeroList(SIOClient* client, const std::string& data){
+	rapidjson::Document document;
+	document.Parse<0>(data.c_str());
+	if (!document.HasParseError()){
+		int resultCode = document["resultCode"].GetInt();
+		if (resultCode == ResultCodeSuccess){
+			mHeroes.clear();
+			const rapidjson::Value & data = document["resultData"];
+			for (auto item = data.Begin(); item != data.End();item++){
+				const rapidjson::Value & heroInfo = *item;
+				Heroes * hero = Heroes::create();
+				hero->retain();
+				if (heroInfo.HasMember("isBoss")){
+					bool isBoss = heroInfo["isBoss"].GetBool();
+					hero->setType(isBoss ? HeroType::Boss : HeroType::Hero);
+				}
+				else{
+					hero->setType(HeroType::Hero);
+				}
+				if (heroInfo.HasMember("type")){
+					int atkType = heroInfo["type"].GetInt();
+					hero->setAtkType((HeroAtkType)atkType);
+				}
+				else{
+					hero->setAtkType(HeroAtkType::Other);
+				}
+				hero->setId(heroInfo["id"].GetInt());
+				hero->set_FK(heroInfo["_fk"].GetString());
+				hero->setTitle(heroInfo["title"].GetString());
+				hero->setName(heroInfo["name"].GetString());
+				hero->setDesc(heroInfo["desc"].GetString());
+				hero->setHP(heroInfo["hp"].GetInt());
+				hero->setPAtk(heroInfo["pAtk"].GetInt());
+				hero->setSAtk(heroInfo["sAtk"].GetInt());
+				hero->setPDef(heroInfo["pDef"].GetInt());
+				hero->setSDef(heroInfo["sDef"].GetInt());
+				hero->setRound(heroInfo["round"].GetInt());
+				hero->setAAtk(heroInfo["aAtk"].GetInt());
+				hero->setDoubleAtk(heroInfo["double"].GetDouble());
+				hero->setSkill(heroInfo["skill"].GetInt());
+				hero->setIcon(heroInfo["icon"].GetString());
+				hero->setLevel(heroInfo["level"].GetInt());
+				hero->setEXP(heroInfo["exp"].GetInt());
+				hero->setHTag(heroInfo["tag"].GetInt());
+				hero->setMaxEXP(heroInfo["maxExp"].GetInt());
+				if (heroInfo.HasMember("atkEffect")){
+					hero->setAtkEffect(heroInfo["atkEffect"].GetString());
+				}
+				if (heroInfo.HasMember("skillEffect")){
+					hero->setSkillEffect(heroInfo["skillEffect"].GetString());
+				}
+				mHeroes.push_back(hero);
+			}
+		}
+	}
+}
 
+void MenuScene::getWuPinList(SIOClient* client, const std::string& data){
+	rapidjson::Document document;
+	document.Parse<0>(data.c_str());
+	if (!document.HasParseError()){
+		int resultCode = document["resultCode"].GetInt();
+		if (resultCode == ResultCodeSuccess){
+			mWuPins.clear();
+			const rapidjson::Value & data = document["resultData"];
+			for (auto item = data.Begin(); item != data.End(); item++){
+				const rapidjson::Value & wuPinInfo = *item;
+				WuPin * wupin = WuPin::create();
+				wupin->retain();
+				wupin->setId(wuPinInfo["id"].GetInt());
+				wupin->setTitle(wuPinInfo["title"].GetString());
+				wupin->setName(wuPinInfo["name"].GetString());
+				wupin->setDesc(wuPinInfo["desc"].GetString());
+				wupin->setIcon(wuPinInfo["icon"].GetString());
+				wupin->setNum(wuPinInfo["num"].GetInt());
+				const rapidjson::Value & proterties = wuPinInfo["proterties"];
+				if (proterties.HasMember("hp")){
+					const rapidjson::Value & hp = proterties["hp"];
+					wupin->proterties["hp"] = hp.GetInt();
+				}
+				if (proterties.HasMember("sAtk")){
+					const rapidjson::Value & sAtk = proterties["sAtk"];
+					wupin->proterties["sAtk"] = sAtk.GetInt();
+				}
+				if (proterties.HasMember("pDef")){
+					const rapidjson::Value & pDef = proterties["pDef"];
+					wupin->proterties["pDef"] = pDef.GetInt();
+				}
+				if (proterties.HasMember("sDef")){
+					const rapidjson::Value & sDef = proterties["sDef"];
+					wupin->proterties["sDef"] = sDef.GetInt();
+				}
+				if (proterties.HasMember("round")){
+					const rapidjson::Value & round = proterties["round"];
+					wupin->proterties["round"] = round.GetInt();
+				}
+				if (proterties.HasMember("aAtk")){
+					const rapidjson::Value & aAtk = proterties["aAtk"];
+					wupin->proterties["aAtk"] = aAtk.GetInt();
+				}
+				if (proterties.HasMember("double")){
+					const rapidjson::Value & doubleAtk = proterties["double"];
+					wupin->proterties["double"] = doubleAtk.GetInt();
+				}
+				mWuPins.push_back(wupin);
+			}
+		}
+	}
+}
 
+void MenuScene::updateHeroInfo(SIOClient* client, const std::string& data){
 
+}
+
+void MenuScene::updateWuPinNum(SIOClient* client, const std::string& data){
+
+}
 
 void MenuScene::onEnterTransitionDidFinish(){
 	if (UserDefault::getInstance()->getBoolForKey(MUSIC_KEY, true)){
 		SimpleAudioEngine::getInstance()->playBackgroundMusic("main_scene.mp3", true);
 	}
+	runAction(Sequence::create(DelayTime::create(0.5f), CallFunc::create([=](){
+		__String * content = __String::createWithFormat("{\"username\":\"%s\" , \"userpwd\" : \"%s\"}",
+			userName, userPwd);
+		sioClient->emit(EmitEvent_UserInfo, content->getCString());
+	}), DelayTime::create(1), CallFunc::create([=](){
+		//添加一个英雄
+		//__String * content = __String::createWithFormat("{\"_id\":\"%s\" , \"heroId\":2001}", userInfo->getId().c_str());
+		//sioClient->emit(EmitEvent_UpdateHero, content->getCString());
+
+		//content = __String::createWithFormat("{\"_id\":\"%s\" , \"heroId\":2002}", userInfo->getId().c_str());
+		//sioClient->emit(EmitEvent_UpdateHero, content->getCString());
+
+		//content = __String::createWithFormat("{\"_id\":\"%s\" , \"heroId\":2003}", userInfo->getId().c_str());
+		//sioClient->emit(EmitEvent_UpdateHero, content->getCString());
+
+		//content = __String::createWithFormat("{\"_id\":\"%s\" , \"heroId\":6001}", userInfo->getId().c_str());
+		//sioClient->emit(EmitEvent_UpdateHero, content->getCString());
+
+		////添加一个物品
+		//content = __String::createWithFormat("{\"_id\":\"%s\", \"wuPinId\":4001}", userInfo->getId().c_str());
+		//sioClient->emit(EmitEvent_UpdateWuPinNum, content->getCString());
+
+	}), NULL));
 }
 
 void MenuScene::cleanup(){
@@ -828,16 +851,18 @@ MenuScene::~MenuScene(){
 	SpriteFrameCache::getInstance()->removeSpriteFrames();
 	//SimpleAudioEngine::getInstance()->
 	//AnimationCache::getInstance()->
-	userInfo->release();
-	for (auto hero = mHeroes.begin(); hero != mHeroes.end(); hero++){
-		(*hero)->release();
-		(*hero) = nullptr;
+	if (userInfo != nullptr){
+		userInfo->release();
+		for (auto hero = mHeroes.begin(); hero != mHeroes.end(); hero++){
+			(*hero)->release();
+			(*hero) = nullptr;
+		}
+		for (auto wupin = mWuPins.begin(); wupin != mWuPins.end(); wupin++){
+			(*wupin)->release();
+			(*wupin) = nullptr;
+		}
+		userInfo = nullptr;
 	}
-	for (auto wupin = mWuPins.begin(); wupin != mWuPins.end(); wupin++){
-		(*wupin)->release();
-		(*wupin) = nullptr;
-	}
-	userInfo = nullptr;
 }
 
 std::string MenuScene::getCurrentTime(){

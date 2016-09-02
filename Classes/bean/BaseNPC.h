@@ -23,7 +23,7 @@ public:
 			"heroesCount" : 15,
 			"act" : 3
 	}*/
-	CC_SYNTHESIZE(int, id, Id);
+	CC_SYNTHESIZE(std::string, id, Id);
 	CC_SYNTHESIZE(int, level, Level);
 	CC_SYNTHESIZE(std::string, icon, Icon);
 	CC_SYNTHESIZE(std::string, name, Name);

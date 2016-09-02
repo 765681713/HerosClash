@@ -25,6 +25,7 @@ public:
 	CC_SYNTHESIZE(std::string, desc, Desc);
 	CC_SYNTHESIZE(std::string, title, Title);
 	CC_SYNTHESIZE(std::string, icon, Icon);
+	CC_SYNTHESIZE(int, num, Num);
 	std::map<std::string, int> proterties; //ЫљгаЪєад
 	//CC_SYNTHESIZE(std::map<std::string, int> , proterties, Proterties);
 

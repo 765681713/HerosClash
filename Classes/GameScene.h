@@ -38,16 +38,24 @@ public:
 	void updateHeroAct();
 	bool initNotRepeatForHero(int indexX, int indexY, int id);
 	bool initNotRepeatForMonster(int indexX, int indexY, int id);
-	void addBoss(int index, int indexX, int indexY, int posionX, int posionY, BaseHeroes * heroes);
+	void addBoss(int index, int indexX, int indexY, int posionY, BaseHeroes * heroes);
 	void heroEntry();
 	void heroCountLCallBack(Ref * ref);
 	void monsterEntry();
-	void mHeroPrepareAndDef(bool isClick);
+	void mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]);
 	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
 	void mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
 	void swapHeroPosition(HeroObj * from, HeroObj * to);
 	void runHeroPosition();
 	void showCupBlood(int cupBlood, int posX, int posY, int zOder);
+	void actRoundChage();
+	void gameWin();
+
+	void monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]);
+	void monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
+	void monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
+	void swapMonsterPosition(HeroObj * from, HeroObj * to);
+	void runMonsterPosition();
 
 	bool onTouchBegan(Touch * pTouch, Event * pEvent);
 	void onTouchMoved(Touch * pTouch, Event * pEvent);
@@ -66,6 +74,7 @@ private:
 	bool isAiRound;
 	bool isMWinGame = false;
 	bool isMonsterWinGame = false;
+	bool isRoundChangeing = false;
 	static const int AllHeroCount = MAX_ROW * MAX_COLUMN;
 
 	int mCurrentHP = 0;
@@ -87,6 +96,7 @@ private:
 
 	HeroObj * mCurrentHero = nullptr;
 	UserInfo * mUserInfo;
+	//std::map<int, ActionTimeline *> animations;
 	std::vector<Heroes *> baseHeroes;
 	std::vector<Monster *> baseMonsters;
 	std::vector<std::vector<HeroObj * >> prepareHeroes;

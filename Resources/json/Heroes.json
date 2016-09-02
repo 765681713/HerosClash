@@ -112,5 +112,25 @@
         "icon": "",
 		"atkEffect":"",
 		"skillEffect":""
+    },
+	  "6001": {
+        "id": 6001,
+		"title":"BossZhanShi1",
+        "name": "BossZhanShi1",
+		"desc":"BossZhanShi1",
+        "hp": 14,
+        "pAtk": 13,
+        "sAtk": 0,
+        "pDef": 6,
+        "sDef": 0,
+        "round": 4,
+        "aAtk": 5,
+        "double": 0.2,
+        "skill": 10003,
+		"type":0,
+		"isBoss":true,
+        "icon": "boss_zhanshi_1.png",
+		"atkEffect":"",
+		"skillEffect":""
     }
 }

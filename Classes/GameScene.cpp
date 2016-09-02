@@ -56,9 +56,11 @@ bool GameScene::init(){
 
 	roundCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("RoundL")->getChildByName("RoundCountAtlas"));
 	secTimeAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("SecTimeAtlas"));
+	secTimeAtlas->setVisible(false);
 	mActCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("JActL")->getChildByName("ActCountAtlas"));
 	monsterActCountAtlas = static_cast<TextAtlas *>(gameSceneNode->getChildByName("MActL")->getChildByName("ActCountAtlas"));
-
+	gameSceneNode->getChildByName("JActL")->setVisible(false);
+	gameSceneNode->getChildByName("MActL")->setVisible(false);
 	Layout * heroCountL = static_cast<Layout *>(gameSceneNode->getChildByName("MHeroCountL"));
 	heroCountL->addClickEventListener(CC_CALLBACK_1(GameScene::heroCountLCallBack,this));
 	mHeroAllCount = static_cast<TextAtlas *>(heroCountL->getChildByName("HeroCountAtlas"));
@@ -81,8 +83,9 @@ bool GameScene::init(){
 	isAiRound = true;
 	schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
 	//加载资源
-	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist");
-	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist", "HeroMuBei.png");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist", "EffectBg.png");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("roundChangeAni.plist","roundChangeAni.png");
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*heros)->getName().c_str())->getCString();
 		std::string atkEffectFileName = String::createWithFormat("%s.plist", (*heros)->getAtkEffect().c_str())->getCString();
@@ -106,6 +109,15 @@ bool GameScene::init(){
 			monsterHeros[i*MAX_ROW + j] = nullptr;
 		}
 	}
+	//roundChange动画
+	Animation * ani = Animation::create();
+	for (int i = 0; i < 10; i++){
+		std::string filePath = String::createWithFormat("ef_001_p_gl_%d.png",(336 + i))->getCString();
+		ani->addSpriteFrame(SpriteFrame::create(filePath, Rect(0, 0, 128, 128)));
+	}
+	//ani->setDelayPerUnit(2.0f / 10.0f);   
+	ani->setRestoreOriginalFrame(true);
+	AnimationCache::getInstance()->addAnimation(ani, "randChangeEffect");
 	mCurrentHP = mUserInfo->getHP();
 	mCurrentMP = 5;
 	mDEF = mUserInfo->getDEF();
@@ -115,7 +127,9 @@ bool GameScene::init(){
 	monsterCurrentMP = 5;
 	monsterDEF = monstersAI->getDEF();
 	monsterActCount = monstersAI->getACT();
-	updateUi();
+	updateHeroCount();
+	updateHPMP();
+	updateHeroAct();
 	return true;
 }
 
@@ -132,6 +146,45 @@ void GameScene::onEnterTransitionDidFinish(){
 	srand(time(NULL));
 }
 
+void GameScene::actRoundChage(){
+	if (isRoundChangeing){
+		return;
+	}
+	isRoundChangeing = true;
+	secTimeAtlas->setVisible(false);
+	LayerColor * colorLayer = LayerColor::create(Color4B(10, 10, 10, 155), mSceneSize.width, mSceneSize.height);
+	colorLayer->setPosition(Vec2(0, mSceneSize.height ));
+	colorLayer->setAnchorPoint(Vec2(0, 0));
+	std::string title;
+	if (!isAiRound){
+		title = "The Enemy Action";
+	}
+	else{
+		title = "My Our Action";
+	}
+	Sprite * sprite = Sprite::createWithSpriteFrameName("ef_001_p_gl_336.png");
+	Animation * animation = AnimationCache::getInstance()->getAnimation("randChangeEffect");
+	auto ani = Animate::create(animation);
+	sprite->runAction(ani);
+	
+	sprite->setPosition(mSceneSize.width / 2, mSceneSize.height * 3 / 4);
+	colorLayer->addChild(sprite);
+	Label * titleL = Label::create();
+	titleL->setSystemFontSize(66);
+	titleL->setTextColor(Color4B(255, 0, 170, 255));
+	titleL->setAnchorPoint(Vec2(0.5, 0.5));
+	titleL->setPosition(mSceneSize.width / 2, mSceneSize.height / 2);
+	titleL->setString(title);
+	colorLayer->addChild(titleL);
+	gameSceneNode->addChild(colorLayer, 100);
+	colorLayer->runAction(Sequence::create(MoveBy::create(0.5f, Vec2(0, -mSceneSize.height)), DelayTime::create(2),
+		MoveBy::create(0.5f, Vec2(0, -mSceneSize.height)), CallFunc::create([=](){
+		isRoundChangeing = false;
+		updateUi();
+		gameSceneNode->removeChild(colorLayer);
+	}), NULL));
+}
+
 void GameScene::updateUi(){
 	secCurrentTime = RoundTime;
 	roundCount++;
@@ -143,6 +196,7 @@ void GameScene::updateUi(){
 	updateHeroCount();
 	updateHPMP();
 	updateHeroAct();
+	secTimeAtlas->setVisible(true);
 	if (!isAiRound && isInit){
 		runHeroPosition();
 	}
@@ -175,11 +229,14 @@ void  GameScene::updateHPMP(){
 	}
 	if (monsterCurrentHP <= 0){
 		monsterCurrentHP = 0;
+		if (isMWinGame){
+			return;
+		}
 		isMWinGame = true;
-		log(" mWinGame ");
 		monsterHPAtlas->runAction(Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
 			unschedule(schedule_selector(GameScene::aiSchedule));
 			unscheduleUpdate();
+			gameWin();
 		}), NULL));
 	}
 	float mHp = (float)mCurrentHP / mUserInfo->getHP();
@@ -194,6 +251,25 @@ void  GameScene::updateHPMP(){
 	monsterMPLoadingBar->setPercent(mosMp * 100);
 	monsterHPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentHP, monstersAI->getHP())->getCString());
 	monsterMPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentMP, monstersAI->getMP())->getCString());
+}
+
+void GameScene::gameWin(){
+	
+	LayerColor * winLayer = LayerColor::create(Color4B(67, 35, 12, 255), mSceneSize.width, mSceneSize.height);
+	winLayer->setPosition(Vec2(mSceneSize.width / 2, mSceneSize.height / 2));
+	winLayer->setAnchorPoint(Vec2(0.5, 0.5));
+	Label * titleL = Label::create();
+	titleL->setSystemFontSize(66);
+	titleL->setTextColor(Color4B(255, 0, 170, 255));
+	titleL->setAnchorPoint(Vec2(0.5, 0.5));
+	titleL->setPosition(mSceneSize.width / 2, mSceneSize.height / 2);
+	titleL->setString("Game Win");
+	winLayer->addChild(titleL);
+	winLayer->setScale(0);
+	this->addChild(winLayer, 100);
+	winLayer->runAction(Sequence::create(ScaleTo::create(1.0f,1.0f),CallFunc::create([=](){
+		
+	}), NULL));
 }
 
 void GameScene::updateHeroAct(){
@@ -279,31 +355,31 @@ void GameScene::heroEntry(){
 				int index = j * MAX_ROW + indexY;
 				if (indexY == 0){//上边界
 					if (mHeros[index] == nullptr && mHeros[index + 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1]){//占四个地方
-						addBoss(index, j, indexY, hStartX - j * heroW - heroW / 2, hStartY - indexY * heroH - heroH / 2, heroes);
+						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1] == nullptr){//占四个地方
+						addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
 						existHeroCount++;
 						break;
 					}
 				}
 				else if (indexY == MAX_ROW - 1){//下边界
 					if (mHeros[index] == nullptr && mHeros[index - 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1]){//占四个地方
-						addBoss(index - 1, j, indexY - 1, hStartX - j * heroW - heroW / 2, hStartY - indexY * heroH + heroH / 2, heroes);
+						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1] == nullptr){//占四个地方
+						addBoss(index - 1, j, indexY - 1, hStartY - indexY * heroH + heroH / 2, heroes);
 						existHeroCount++;
 						break;
 					}
 				}
 				else{//中间
 					if (mHeros[index] == nullptr && mHeros[index + 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1]){//占四个地方
-						addBoss(index, j, indexY, hStartX - j * heroW - heroW / 2, hStartY - indexY * heroH - heroH / 2, heroes);
+						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1] == nullptr){//占四个地方
+						addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
 						existHeroCount++;
 						break;
 					}
 					else if (mHeros[index] == nullptr && mHeros[index - 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1]){//占四个地方
+						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1] == nullptr){//占四个地方
 						//tag , (0,0) , px py , hero
-						addBoss(index - 1, j, indexY - 1, hStartX - j * heroW - heroW / 2, hStartY - indexY * heroH + heroH / 2, heroes);
+						addBoss(index - 1, j, indexY - 1,  hStartY - indexY * heroH + heroH / 2, heroes);
 						existHeroCount++;
 						break;
 					}
@@ -342,7 +418,6 @@ void GameScene::monsterEntry(){
 					hero->retain();
 					hero->setPosition(mSceneSize.width + 60, hObj->getpositionY());
 					hObj->addNode(gameSceneLayout, hero);
-					//出场动画
 					ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
 					hero->runAction(action);
 					hObj->setAction(action);
@@ -368,6 +443,8 @@ void GameScene::initGame(){
 	monsterEntry();
 	isInit = false;
 	updateHeroCount();
+	actRoundChage();
+
 }
 
 bool GameScene::initNotRepeatForHero(int indexX, int indexY, int id){
@@ -561,25 +638,29 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 	}
 }
 
-void GameScene::addBoss(int index, int indexX, int indexY, int posionX, int posionY, BaseHeroes* heroes){
+void GameScene::addBoss(int index, int indexX, int indexY, int posionY, BaseHeroes* heroes){
 	HeroObj * hObj = HeroObj::create();
 	hObj->retain();
+	hObj->setIsMonster(false);
 	hObj->setIndexX(indexX);
 	hObj->setIndexY(indexY);
+	hObj->setpositionY(posionY);
+	hObj->setpositionX(hObj->getpositionX() - heroW / 4);
 	hObj->setHero(heroes);
 	std::string name = heroes->getName();
 	std::string nodeName = String::createWithFormat("%s.csb", name.c_str())->getCString();
 	auto hero = CSLoader::createNode(nodeName.c_str());
+	hero->setAnchorPoint(Vec2(0.5,0.5));
 	hero->setPosition(-120, hObj->getpositionY());
-	hero->setScaleX(-2);
-	hero->setScaleY(2);
+	hero->setScaleX(-1.0f);
+	//hero->setScaleY(1.5f);
 	hObj->addNode(gameSceneLayout, hero);
 	//出场动画
 	ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
 	hero->runAction(action);
 	hObj->setAction(action);
 	hObj->runAction(HeroActionType::Run);
-	hero->runAction(Sequence::create(DelayTime::create(0.4f * indexX), MoveTo::create(0.3f * (MAX_COLUMN + 1 - indexX), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
+	hero->runAction(Sequence::create(DelayTime::create(0.2f * indexX), MoveTo::create(0.2f * (MAX_COLUMN + 1 - indexX), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
 		hObj->runAction(HeroActionType::Stand);
 	}), NULL));
 	mHeros[index] = hObj;
@@ -663,11 +744,56 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 			if (indexHero == -1){
 				return;
 			}
-			if (mHeros[indexHero]->getActionType() == HeroActionType::Stand){
+			if (mHeros[indexHero]->getActionType() == HeroActionType::Stand && mHeros[indexHero]->getHero()->getType() == HeroType::Hero){
 				mCurrentHero = mHeros[indexHero];
 				mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
 				return;
 			}
+			/*if (mHeros[indexHero]->getActionType() == HeroActionType::Stand && mHeros[indexHero]->getHero()->getType() == HeroType::Boss){
+				if (indexHero + MAX_ROW > AllHeroCount){
+					mCurrentHero = mHeros[indexHero];
+					mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
+					return;
+				}
+				else{
+					if (indexHero >= MAX_ROW){
+						if (mHeros[indexHero] == mHeros[indexHero - 1] && mHeros[indexHero] == mHeros[indexHero - MAX_ROW] &&
+							mHeros[indexHero] == mHeros[indexHero - MAX_ROW - 1]){
+							if (mHeros[indexHero + MAX_ROW] == nullptr && mHeros[indexHero + MAX_ROW - 1] == nullptr){
+								mCurrentHero = mHeros[indexHero];
+								mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
+							}
+							return;
+						}
+						if (mHeros[indexHero] == mHeros[indexHero + 1] && mHeros[indexHero] == mHeros[indexHero - MAX_ROW] &&
+							mHeros[indexHero] == mHeros[indexHero - MAX_ROW + 1]){
+							if (mHeros[indexHero + MAX_ROW] == nullptr && mHeros[indexHero + MAX_ROW + 1] == nullptr){
+								mCurrentHero = mHeros[indexHero];
+								mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
+							}
+							return;
+						}
+					}
+					if (indexHero + 2 * MAX_ROW < AllHeroCount){
+						if (mHeros[indexHero] == mHeros[indexHero - 1] && mHeros[indexHero] == mHeros[indexHero + MAX_ROW] &&
+							mHeros[indexHero] == mHeros[indexHero + MAX_ROW - 1]){
+							if (mHeros[indexHero + 2 * MAX_ROW] == nullptr && mHeros[indexHero + 2 * MAX_ROW - 1] == nullptr){
+								mCurrentHero = mHeros[indexHero];
+								mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
+							}
+							return;
+						}
+						if (mHeros[indexHero] == mHeros[indexHero + 1] && mHeros[indexHero] == mHeros[indexHero + MAX_ROW] &&
+							mHeros[indexHero] == mHeros[indexHero + MAX_ROW + 1]){
+							if (mHeros[indexHero + 2 * MAX_ROW] == nullptr && mHeros[indexHero + 2 * MAX_ROW + 1] == nullptr){
+								mCurrentHero = mHeros[indexHero];
+								mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
+							}
+							return;
+						}
+					}
+				}
+			}*/
 			mCurrentHero = nullptr;
 		}
 		else{
@@ -701,7 +827,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 				mHeros[indexXHero * MAX_COLUMN + index] = mCurrentHero;
 			}), CallFunc::create([=](){
 				//判断 准备和防御
-				mHeroPrepareAndDef(true);
+				mHeroPrepareAndDef(true,mHeros);
 				mCurrentHero = nullptr;
 				isActionRuning = false;
 				
@@ -743,22 +869,23 @@ void GameScene::onLongTouchDown(float delay){
 				}
 			}
 			//判断 准备和防御
-			mHeroPrepareAndDef(true);
+			mHeroPrepareAndDef(true,mHeros);
 			//});
 			hero = nullptr;
 		}
 	}
 }
 
-void GameScene::mHeroPrepareAndDef(bool isClick){//判断是否人点击 runHeroPosition()  //计算行动次数
+void GameScene::mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]){//判断是否人点击 runHeroPosition()  //计算行动次数
 	std::vector<std::vector<HeroObj *>> allHHeroes;
 	std::vector<std::vector<HeroObj *>> allVHeroes;
+
 	int id;
 	for (int i = 0; i < MAX_ROW; i++){//行
 		std::vector<HeroObj *> hHeroes;
 		for (int j = 0; j < MAX_COLUMN; j++){//列
 			HeroObj * hero = mHeros[j * MAX_ROW + i];
-			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand){
+			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
 				if (hHeroes.empty()){
 					id = hero->getHero()->getId();
 					hHeroes.push_back(hero);
@@ -792,7 +919,7 @@ void GameScene::mHeroPrepareAndDef(bool isClick){//判断是否人点击 runHeroPositio
 		std::vector<HeroObj *> vHeroes;
 		for (int j = 0; j < MAX_ROW; j++){//行
 			HeroObj * hero = mHeros[i * MAX_ROW + j];
-			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand){
+			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
 				if (vHeroes.empty()){
 					id = hero->getHero()->getId();
 					//log(" hero->getHero()->getId() = %d ", hero->getHero()->getId());
@@ -916,11 +1043,13 @@ void GameScene::mHeroPrepareAndDef(bool isClick){//判断是否人点击 runHeroPositio
 		//次数减一
 		if (isAiRound){
 			monsterActCount--;
-			monsterActCount <= 0 ? updateUi() : updateActTime();
 		}
 		else{
 			mActCount--;
-			mActCount <= 0 ? updateUi() : updateActTime();
+		}
+		updateActTime();
+		if (monsterActCount <= 0 || mActCount <= 0){
+			actRoundChage();
 		}
 	}
 }
@@ -951,7 +1080,7 @@ void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
 	//移动完后
 	stopActionByTag(SwapActionTag);
 	Action * action = Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
-		mHeroPrepareAndDef(false);
+		mHeroPrepareAndDef(false,mHeros);
 	}), NULL);
 	action->setTag(SwapActionTag);
 	runAction(action);
@@ -972,7 +1101,7 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 				//准备好后 移动
 				for (int i = heroes[0]->getIndexX() - 1; i >= 0; i--){
 					HeroObj * obj = mHeros[i * MAX_ROW + heroes[0]->getIndexY()];
-					if (obj != nullptr && obj->getActionType() == HeroActionType::Prepare  //pre 并且相同
+					if (obj != nullptr && obj->getActionType() == HeroActionType::Prepare  //pre 并且相同  攻击没有加倍  对象没有从准备中消失
 						&& obj->getHero()->getId() == heroes[0]->getHero()->getId()){
 						for (int i = 0; i < 3; i++){
 							HeroObj * heroItem = heroes[i];
@@ -1033,16 +1162,266 @@ void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
 	}
 }
 
-void GameScene::aiSchedule(float delay){
-	secCurrentTime--;
-	if (secCurrentTime < 0){
-		updateUi();
+void GameScene::monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]){//判断是否人点击 runHeroPosition()  //计算行动次数
+	std::vector<std::vector<HeroObj *>> allHMonsters;
+	std::vector<std::vector<HeroObj *>> allVMonsters;
+	int id;
+	for (int i = 0; i < MAX_ROW; i++){//行
+		std::vector<HeroObj *> hHeroes;
+		for (int j = 0; j < MAX_COLUMN; j++){//列
+			HeroObj * hero = monsterHeros[j * MAX_ROW + i];
+			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
+				if (hHeroes.empty()){
+					id = hero->getHero()->getId();
+					hHeroes.push_back(hero);
+					continue;
+				}
+				if (id == hero->getHero()->getId()){
+					hHeroes.push_back(hero);
+				}
+				else{
+					if (hHeroes.size() >= 3){
+						allHMonsters.push_back(hHeroes);
+					}
+					hHeroes.clear();
+					id = hero->getHero()->getId();
+					hHeroes.push_back(hero);
+				}
+			}
+			else{
+				if (hHeroes.size() >= 3){
+					allHMonsters.push_back(hHeroes);
+				}
+				hHeroes.clear();
+			}
+		}
+		if (hHeroes.size() >= 3){
+			allHMonsters.push_back(hHeroes);
+		}
+		hHeroes.clear();
 	}
-	secTimeAtlas->setString(String::createWithFormat("%d",secCurrentTime)->getCString());
+	for (int i = 0; i < MAX_COLUMN; i++){//列
+		std::vector<HeroObj *> vHeroes;
+		for (int j = 0; j < MAX_ROW; j++){//行
+			HeroObj * hero = monsterHeros[i * MAX_ROW + j];
+			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
+				if (vHeroes.empty()){
+					id = hero->getHero()->getId();
+					vHeroes.push_back(hero);
+					continue;
+				}
+				if (id == hero->getHero()->getId()){
+					vHeroes.push_back(hero);
+				}
+				else{
+					if (vHeroes.size() >= 3){
+						allVMonsters.push_back(vHeroes);
+					}
+					vHeroes.clear();
+					id = hero->getHero()->getId();
+					vHeroes.push_back(hero);
+				}
+			}
+			else{
+				if (vHeroes.size() >= 3){
+					allVMonsters.push_back(vHeroes);
+				}
+				vHeroes.clear();
+			}
+		}
+		if (vHeroes.size() >= 3){
+			allVMonsters.push_back(vHeroes);
+		}
+		vHeroes.clear();
+	}
+	if (!allHMonsters.empty() && !allVMonsters.empty()){
+		//筛选重复的hero
+		std::vector<HeroObj *> repeatHero;
+		for (auto hHeroes : allHMonsters){
+			for (auto hHero : hHeroes){
+				for (auto vHeroes : allVMonsters){
+					for (auto vHero : vHeroes){
+						if (hHero->getId() == vHero->getId()){
+							repeatHero.push_back(hHero);
+							break;
+						}
+					}
+				}
+			}
+		}
+		if (repeatHero.empty()){
+			monsterDefAction(allVMonsters);
+			monsterPrepareAction(allHMonsters);
+		}
+		else{
+			//有重复的就多填一个   总数量减一
+			for (auto hero : repeatHero){
+				for (int i = hero->getIndexX() + 1; i < MAX_COLUMN; i++){
+					int index = i*MAX_COLUMN + hero->getIndexY();
+					if (monsterHeros[index] == nullptr){
+						HeroObj * h = hero->cloneThis(i);
+						for (auto& vHeroes : allVMonsters){//带上&  代表我要修改列表中的值  等同于 begin end
+							for (auto vHero = vHeroes.begin(); vHero != vHeroes.end(); vHero++){
+								if (hero->getId() == (*vHero)->getId()){
+									vHeroes.erase(vHero);
+									vHeroes.push_back(h);
+									monsterHeros[index] = h;
+									//删除原数组中的  添加一个后面的
+									break;
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+			monsterPrepareAction(allHMonsters);
+			monsterDefAction(allVMonsters);
+			//次数加一
+			if (isAiRound){
+				monsterActCount++;
+			}
+			else{
+				mActCount++;
+			}
+			updateActTime();
 
-	if (isAiRound){
-		
+		}
 
+	}
+	else if (!allHMonsters.empty()){
+		monsterPrepareAction(allHMonsters);
+	}
+	else if (!allVMonsters.empty()){
+		monsterDefAction(allVMonsters);
+	}
+	if (isClick){//是人单击就减少一次
+		//回合过后不减
+		//次数减一
+		monsterActCount--;
+		updateActTime();
+		if (monsterActCount <= 0 ){
+			actRoundChage();
+		}
+	}
+}
+void GameScene::monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes){
+
+}
+void GameScene::monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
+
+}
+void GameScene::swapMonsterPosition(HeroObj * from, HeroObj * to){
+
+}
+void GameScene::runMonsterPosition(){
+	
+}
+
+void GameScene::aiSchedule(float delay){
+	if (!isRoundChangeing){
+		secCurrentTime--;
+		if (secCurrentTime < 0){
+			secCurrentTime = 0;
+			actRoundChage();
+		}
+		secTimeAtlas->setString(String::createWithFormat("%d", secCurrentTime)->getCString());
+	}
+	if (isAiRound && !isActionRuning){
+	//	HeroObj * mSelectObj;
+	//	HeroObj * mMidObj;
+	//	//横向 一步 消失
+	//	for (int i = 0; i < MAX_ROW; i++){
+	//		//
+	//		int standCount = 0;
+	//		for (int j = 0; j < MAX_COLUMN; j++){
+	//			int index = j * MAX_ROW + j;
+	//			if (monsterHeros[index] == nullptr){
+	//				break;
+	//			}
+	//			if (monsterHeros[index]->getActionType() == HeroActionType::Stand){
+	//				standCount++;
+	//			}
+	//			else{
+	//				standCount = 0;
+	//			}
+	//			//mSelectObj
+	//			if (standCount == 4){
+	//				mSelectObj = monsterHeros[(j - 4)* MAX_ROW + i];
+	//				int lastIndex = (j - 3)* MAX_ROW + j;
+	//				int lastLastIndex = (j - 2)* MAX_ROW + j;
+	//				int lastLastLastIndex = (j - 1) * MAX_ROW + j;
+	//				int mCurrrntId = mSelectObj->getHero()->getId();
+	//				if (mCurrrntId == monsterHeros[lastIndex]->getHero()->getId()
+	//					&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
+	//					gameSceneLayout->removeChild(monsterHeros[lastLastIndex]->getMCurrentNode(), true);
+	//					monsterHeros[lastLastIndex] = nullptr;
+	//					existMonsterCount--;
+	//					updateHeroCount();
+	//					for (int k = j - 1; k < MAX_COLUMN; k++){
+	//						if (monsterHeros[k * MAX_ROW + i] != nullptr){
+	//							HeroObj * mHero = monsterHeros[i * MAX_ROW + i];
+	//							mHero->setIndexX(k - 1);
+	//							mHero->updateNode();
+	//							mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+	//							monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+	//							monsterHeros[k * MAX_ROW + i] = nullptr;
+	//						}
+	//						else{
+	//							break;
+	//						}
+	//					}
+	//					//判断 准备和防御
+	//					mHeroPrepareAndDef(true);
+	//				}
+	//				if (mCurrrntId == monsterHeros[lastLastIndex]->getHero()->getId()
+	//					&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
+	//					
+	//				}
+	//			}else if (standCount == 5){
+
+	//			}else if (standCount == 6){
+
+	//			} else if (standCount == 7){
+
+	//			} else if (standCount == 8){
+
+
+	//			}
+	//		}
+	//	}
+
+	//	//横向 一步 移动
+	//	for (int i = 0; i < MAX_COLUMN; i++){
+	//		//
+
+
+
+
+	//	}
+
+	//	//横向 两步 消失
+	//	for (int i = 0; i < MAX_COLUMN; i++){
+	//		//
+
+
+
+
+	//	}
+
+	//	//横向 两步 移动
+	//	for (int i = 0; i < MAX_COLUMN; i++){
+	//		//
+
+
+
+
+	//	}
+
+	//	//纵向 一步 消失
+	//	//纵向 一步 移动
+
+	//	//出兵
 	}
 }
 
@@ -1184,10 +1563,10 @@ void GameScene::heroCountLCallBack(Ref * ref){
 		heroEntry();
 		stopActionByTag(HeroEnterActionTag);
 		Action * action = Sequence::create(DelayTime::create(2), CallFunc::create([=](){
-			mHeroPrepareAndDef(true);
+			mHeroPrepareAndDef(true,mHeros);
 			if (mActCount == 0){
 				//移动完后
-				updateUi();
+				actRoundChage();
 			}
 			else{
 				updateHeroCount();

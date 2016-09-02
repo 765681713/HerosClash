@@ -4,7 +4,7 @@
 		"level":1,
 		"icon":"monster_ai_icon_1.png",
 		"name":"冰焰的旋律",
-		"hp":50,
+		"hp":25,
 		"def":2,
 		"mp":25,
 		"heroesCount":15,

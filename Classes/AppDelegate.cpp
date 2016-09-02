@@ -58,8 +58,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	glview->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::NO_BORDER);
 #else
 	auto frameSize = glview->getFrameSize();
-	glview->setDesignResolutionSize(frameSize.width, frameSize.height, ResolutionPolicy::NO_BORDER);
-	director->setContentScaleFactor(MIN(frameSize.height / designResolutionSize.height, frameSize.width / designResolutionSize.width));
+	//glview->setDesignResolutionSize(frameSize.width, frameSize.height, ResolutionPolicy::NO_BORDER);
+	glview->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::NO_BORDER);
+	//director->setContentScaleFactor(MAX(frameSize.height / designResolutionSize.height, frameSize.width / designResolutionSize.width));
 #endif
 
 	//×ÊÔ´Â·¾¶

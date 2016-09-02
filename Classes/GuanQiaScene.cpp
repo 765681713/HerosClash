@@ -197,12 +197,12 @@ void GuanQiaScene::startGame(Ref *  node){
 	mCurrentHeroes.push_back(mHeroes.at(myHero1->getTag()));
 	mCurrentHeroes.push_back(mHeroes.at(myHero2->getTag()));
 	mCurrentHeroes.push_back(mHeroes.at(myHero3->getTag()));
-	if (myHero4->getTag() >= 0){
+	/*if (myHero4->getTag() >= 0){
 		mCurrentHeroes.push_back(mHeroes.at(myHero4->getTag()));
 	}
 	if (myHero5->getTag() >= 0){
 		mCurrentHeroes.push_back(mHeroes.at(myHero5->getTag()));
-	}
+	}*/
 	////获取系统时间
 	//struct timeval now;
 	//gettimeofday(&now, NULL);
@@ -552,7 +552,7 @@ void GuanQiaScene::decodeAIJson(){
 		const rapidjson::Value & aiV = document[idStr.c_str()];
 		monsterAi = AI::create();
 		monsterAi->retain();
-		monsterAi->setId(aiV["id"].GetInt());
+		//monsterAi->setId(aiV["id"].GetString());
 		monsterAi->setLevel(aiV["level"].GetInt());
 		monsterAi->setIcon(aiV["icon"].GetString());
 		monsterAi->setName(aiV["name"].GetString());

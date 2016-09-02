@@ -11,6 +11,7 @@
 #include "bean\Heroes.h"
 #include "bean\WuPin.h"
 #include "network\SocketIO.h"
+#include "Constants.h"
 
 #define MUSIC_KEY "music_key"
 #define SOUND_KEY "sound_key"
@@ -67,6 +68,10 @@ public:
 	virtual void onError(SIOClient* client, const std::string& data) override;
 	//»Øµ÷
 	virtual void getUserInfo(SIOClient* client, const std::string& data);
+	virtual void getHeroList(SIOClient* client, const std::string& data);
+	virtual void getWuPinList(SIOClient* client, const std::string& data);
+	virtual void updateHeroInfo(SIOClient* client, const std::string& data);
+	virtual void updateWuPinNum(SIOClient* client, const std::string& data);
 
 
 	std::string getCurrentTime();
@@ -87,7 +92,7 @@ public:
 	std::vector<WuPin *> mWuPins;
 	UserInfo * userInfo;
 	SIOClient * sioClient;
-
+	bool isLogin;
 };
 
 typedef enum {

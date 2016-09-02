@@ -46,7 +46,6 @@ bool HelloWorld::init()
 	//Ìí¼Óµ½»º´æ
 	//SpriteFrameCache::getInstance()->addSpriteFrame(frame, "menu_bg");
 
-
 	//auto loading = Director::getInstance()->getTextureCache()->addImage("loading_bg2.png");
 	//Rect r = Rect::ZERO;
 	//r.size = loading->getContentSize();
@@ -58,14 +57,65 @@ bool HelloWorld::init()
 	return true;
 }
 
+void HelloWorld::onEnterTransitionDidFinish(){
+
+	//rapidjson::Document document;
+	//document.SetObject();
+	//rapidjson::Document::AllocatorType& allocator = document.GetAllocator();
+	//rapidjson::Value array(rapidjson::kArrayType);
+	//rapidjson::Value object(rapidjson::kObjectType);
+	//object.AddMember("int", 1, allocator);
+	//object.AddMember("double", 1.0, allocator);
+	//object.AddMember("bool", true, allocator);
+	//object.AddMember("hello", "HelloWorld", allocator);
+	//array.PushBack(object, allocator);
+	//StringBuffer buffer;
+	//rapidjson::Writer<StringBuffer> writer(buffer);
+	//document.Accept(writer);
+
+	/*document.AddMember("username", "BingYanDeXuanLv", allocator);
+	document.AddMember("userpwd", "123456789", allocator);
+	rapidjson::StringBuffer buffer;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+	document.Accept(writer);*/
+	//log(" buffer = %s " , buffer.GetString());
+	std::string params = String::createWithFormat("username=%s&userpwd=%s",userName,userPwd)->getCString();
+	HttpRequest * req = new HttpRequest();
+	req->setUrl(loginUrl);
+	req->setRequestType(HttpRequest::Type::POST);
+	req->setResponseCallback(this,httpresponse_selector(HelloWorld::login));
+	req->setRequestData(params.c_str(), strlen(params.c_str()));
+	HttpClient::getInstance()->send(req);
+	req->release();
+}
+
+void HelloWorld::login(HttpRequest * req, HttpResponse * res){
+	if (!res){
+		return;
+	}
+	int code = res->getResponseCode();
+	auto dataChar = res->getResponseData();
+	std::string data = std::string(dataChar->begin(),dataChar->end());
+	rapidjson::Document document;
+	document.Parse<0>(data.c_str());
+	if (!document.HasParseError()){
+		int resultCode = document["resultCode"].GetInt();
+		if (resultCode == ResultCodeSuccess){
+			isLogin = true;
+		}
+	}
+}
+
 void HelloWorld::udpateProgress(float time){
 	if (loadingBar != nullptr){
 		int loading = loadingBar->getPercent();
 		loading += 20;
 		if (loading >= 100){
 			loadingBar->setPercent(100);
-			Scene * ms = MenuScene::createScene();
-			Director::getInstance()->replaceScene(ms);
+			if (isLogin){
+				Scene * ms = MenuScene::createScene();
+				Director::getInstance()->replaceScene(ms);
+			}
 		}
 		else{
 			loadingBar->setPercent(loading);
