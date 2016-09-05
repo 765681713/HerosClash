@@ -184,14 +184,10 @@ void HeroObj::prepare(bool showNum){
 		std::string atk = String::createWithFormat("%d",mCurrentATK)->getCString();
 		TextAtlas * atkAtlas = TextAtlas::create(atk, "hero_atk_num.png", 30, 35, ".");
 		atkAtlas->setAnchorPoint(Vec2(0.5, 1));
-		atkAtlas->setScaleX(-0.5f);
-		atkAtlas->setScaleY(0.5f);
 		atkAtlas->setPosition(Vec2(0, 35));
 		std::string act = String::createWithFormat("%d", mCurrentACT)->getCString();
 		TextAtlas * roundAtlas = TextAtlas::create(act, "hero_round_count_num.png", 50, 65, ".");
-		roundAtlas->setScaleX(-0.3f);
 		roundAtlas->setAnchorPoint(Vec2(0.5, 1));
-		roundAtlas->setScaleY(0.3f);
 		roundAtlas->setPosition(Vec2(0, 0));
 		Sprite *atkProOff = Sprite::create("hero_atk_pre_off.png");
 		Sprite *atkProOn = Sprite::create("hero_atk_pre_on.png");
@@ -202,14 +198,30 @@ void HeroObj::prepare(bool showNum){
 		atkPro->setBarChangeRate(ccp(1, 0));
 		int hp = mCurrentATK * 100 / (mCurrentATK + mCurrentACT * mCurrentADD);
 		atkPro->setPercentage(hp);
-		atkPro->setScaleX(-0.5f);
-		atkPro->setScaleY(0.5f);
 		atkPro->setAnchorPoint(Vec2(0.5, 1));
 		atkPro->setPosition(Vec2(0, 10));
-		atkProOff->setScaleX(-0.5f);
-		atkProOff->setScaleY(0.5f);
 		atkProOff->setAnchorPoint(Vec2(0.5, 1));
 		atkProOff->setPosition(Vec2(0, 10));
+		if (isMonster){
+			atkAtlas->setScaleX(0.5f);
+			atkAtlas->setScaleY(0.5f);
+			roundAtlas->setScaleX(0.3f);
+			roundAtlas->setScaleY(0.3f);
+			atkPro->setScaleX(0.5f);
+			atkPro->setScaleY(0.5f);
+			atkProOff->setScaleX(0.5f);
+			atkProOff->setScaleY(0.5f);
+		}
+		else{
+			atkAtlas->setScaleX(-0.5f);
+			atkAtlas->setScaleY(0.5f);
+			roundAtlas->setScaleX(-0.3f);
+			roundAtlas->setScaleY(0.3f);
+			atkPro->setScaleX(-0.5f);
+			atkPro->setScaleY(0.5f);
+			atkProOff->setScaleX(-0.5f);
+			atkProOff->setScaleY(0.5f);
+		}
 		mCurrentNode->addChild(atkAtlas, 2, 100);
 		mCurrentNode->addChild(atkProOff, 1, 200);
 		mCurrentNode->addChild(atkPro, 1, 300);
@@ -341,6 +353,9 @@ bool HeroObj::collision(HeroObj * target){
 		return false;
 	}
 	//不同的武器 不同的碰撞检测
+	if (hero == nullptr){
+		return false;
+	}
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
 		if (mWuQi->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2

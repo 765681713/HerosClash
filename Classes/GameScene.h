@@ -43,19 +43,19 @@ public:
 	void heroCountLCallBack(Ref * ref);
 	void monsterEntry();
 	void mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]);
-	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
-	void mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
-	void swapHeroPosition(HeroObj * from, HeroObj * to);
-	void runHeroPosition();
+	void mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes, HeroObj * mHeros[]);
+	void mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes, HeroObj * mHeros[]);
+	void swapHeroPosition(HeroObj * from, HeroObj * to, HeroObj * mHeros[]);
+	void runHeroPosition(HeroObj * mHeros[]);
 	void showCupBlood(int cupBlood, int posX, int posY, int zOder);
 	void actRoundChage();
-	void gameWin();
+	void gameWin(bool isMy);
 
-	void monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]);
+	/*void monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]);
 	void monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
 	void monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
 	void swapMonsterPosition(HeroObj * from, HeroObj * to);
-	void runMonsterPosition();
+	void runMonsterPosition();*/
 
 	bool onTouchBegan(Touch * pTouch, Event * pEvent);
 	void onTouchMoved(Touch * pTouch, Event * pEvent);
@@ -64,6 +64,7 @@ public:
 	
 	//AI
 	void aiSchedule(float delay);
+	void timeSchedule(float delay);
 	virtual void update(float dt);
 
 	virtual void onExit();
@@ -103,7 +104,7 @@ private:
 	std::vector<std::vector<HeroObj * >> prepareMonster;
 
 	AI * monstersAI;
-	HeroObj * mHeros[AllHeroCount];
+	HeroObj * mHeroes[AllHeroCount];
 	HeroObj * monsterHeros[AllHeroCount];
 
 	EventDispatcher * eventDispatcher;

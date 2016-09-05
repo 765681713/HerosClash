@@ -381,6 +381,13 @@ void GuanQiaScene::decodeMonsterJson(){
 				else{
 					monster->setType(HeroType::Hero);
 				}
+				if (monsterValue.HasMember("type")){
+					int atkType = monsterValue["type"].GetInt();
+					monster->setAtkType((HeroAtkType)atkType);
+				}
+				else{
+					monster->setAtkType(HeroAtkType::Other);
+				}
 				monster->setId(id.GetInt());
 				monster->setTitle(title.GetString());
 				monster->setName(name.GetString());

@@ -81,7 +81,7 @@ bool GameScene::init(){
 	eventDispatcher->addEventListenerWithSceneGraphPriority(gameSceneListener->clone(), pauseS);
 	//
 	isAiRound = true;
-	schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
+	schedule(schedule_selector(GameScene::timeSchedule), 1.0f);
 	//¼ÓÔØ×ÊÔ´
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("HeroMuBei.plist", "HeroMuBei.png");
 	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("EffectBg.plist", "EffectBg.png");
@@ -101,7 +101,7 @@ bool GameScene::init(){
 
 	for (int i = 0; i < MAX_ROW; i++){
 		for (int j = 0; j < MAX_COLUMN; j++){
-			mHeros[i*MAX_ROW + j] = nullptr;
+			mHeroes[i*MAX_ROW + j] = nullptr;
 		}
 	}
 	for (int i = 0; i < MAX_ROW; i++){
@@ -136,7 +136,9 @@ bool GameScene::init(){
 void GameScene::onEnter(){
 	Layer::onEnter();
 	isMWinGame = false;
+	isMonsterWinGame = false;
 	this->scheduleUpdate();
+
 }
 
 void GameScene::onEnterTransitionDidFinish(){
@@ -144,6 +146,7 @@ void GameScene::onEnterTransitionDidFinish(){
 	Sequence * action = Sequence::create(dTime, CallFunc::create(CC_CALLBACK_0(GameScene::initGame, this)), NULL);
 	this->runAction(action);
 	srand(time(NULL));
+
 }
 
 void GameScene::actRoundChage(){
@@ -197,8 +200,14 @@ void GameScene::updateUi(){
 	updateHPMP();
 	updateHeroAct();
 	secTimeAtlas->setVisible(true);
-	if (!isAiRound && isInit){
-		runHeroPosition();
+	if (isInit){
+		runHeroPosition(isAiRound ? monsterHeros:mHeroes);
+	}
+	if (isAiRound){
+		schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
+	}
+	else{
+		unschedule(schedule_selector(GameScene::aiSchedule));
 	}
 }
 
@@ -225,7 +234,15 @@ void GameScene::updateHeroCount(){
 void  GameScene::updateHPMP(){
 	if (mCurrentHP <= 0){
 		mCurrentHP = 0;
+		if (isMonsterWinGame){
+			return;
+		}
 		isMonsterWinGame = true;
+		mHPAtlas->runAction(Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
+			unschedule(schedule_selector(GameScene::aiSchedule));
+			unscheduleUpdate();
+			gameWin(false);
+		}), NULL));
 	}
 	if (monsterCurrentHP <= 0){
 		monsterCurrentHP = 0;
@@ -236,7 +253,7 @@ void  GameScene::updateHPMP(){
 		monsterHPAtlas->runAction(Sequence::create(DelayTime::create(0.5), CallFunc::create([=](){
 			unschedule(schedule_selector(GameScene::aiSchedule));
 			unscheduleUpdate();
-			gameWin();
+			gameWin(true);
 		}), NULL));
 	}
 	float mHp = (float)mCurrentHP / mUserInfo->getHP();
@@ -253,17 +270,16 @@ void  GameScene::updateHPMP(){
 	monsterMPAtlas->setString(String::createWithFormat("%d/%d", monsterCurrentMP, monstersAI->getMP())->getCString());
 }
 
-void GameScene::gameWin(){
-	
+void GameScene::gameWin(bool isMy){
 	LayerColor * winLayer = LayerColor::create(Color4B(67, 35, 12, 255), mSceneSize.width, mSceneSize.height);
-	winLayer->setPosition(Vec2(mSceneSize.width / 2, mSceneSize.height / 2));
+	winLayer->setPosition(Vec2(0,0));
 	winLayer->setAnchorPoint(Vec2(0.5, 0.5));
 	Label * titleL = Label::create();
 	titleL->setSystemFontSize(66);
 	titleL->setTextColor(Color4B(255, 0, 170, 255));
 	titleL->setAnchorPoint(Vec2(0.5, 0.5));
 	titleL->setPosition(mSceneSize.width / 2, mSceneSize.height / 2);
-	titleL->setString("Game Win");
+	titleL->setString(isMy ? "Game Win": "Game Lost");
 	winLayer->addChild(titleL);
 	winLayer->setScale(0);
 	this->addChild(winLayer, 100);
@@ -274,7 +290,31 @@ void GameScene::gameWin(){
 
 void GameScene::updateHeroAct(){
 	if (isAiRound){
-		
+		for (auto heroes = prepareMonster.begin(); heroes != prepareMonster.end(); heroes++){
+			auto hs = (*heroes);
+			for (auto hero : hs){
+				hero->updateRound();
+			}
+			if (hs.at(0)->getHeroACT() <= 0){
+				isActionRuning = true;
+				for (unsigned int i = 0; i < hs.size(); i++){
+					auto heroObj = hs.at(i);
+					heroObj->atkEnemy([=](){
+						heroObj->attack([=](Node * node){
+							//´òÇ½
+							if (i == 0){
+								int hp = heroObj->getHeroATK() - monsterDEF;
+								monsterCurrentHP = monsterCurrentHP - hp;
+								showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), heroObj->getIndexY());
+								updateHPMP();
+							}
+							heroObj->setHeroHP(0);
+							heroObj->setHeroATK(0);
+						}, nullptr);
+					});
+				}
+			}
+		}
 	}
 	else{
 		for (auto heroes = prepareHeroes.begin(); heroes != prepareHeroes.end();heroes++){
@@ -282,7 +322,7 @@ void GameScene::updateHeroAct(){
 			for (auto hero : hs){
 				hero->updateRound();
 			}
-			if (hs.at(0)->getHeroACT() == 0){
+			if (hs.at(0)->getHeroACT() <= 0){
 				isActionRuning = true;
 				for (unsigned int i = 0; i < hs.size(); i++){
 					auto heroObj = hs.at(i);
@@ -319,7 +359,7 @@ void GameScene::heroEntry(){
 		if (heroes->getType() == HeroType::Hero){
 			for (int j = 0; j < MAX_COLUMN; j++){
 				int index = j * MAX_ROW + indexY;
-				if (mHeros[index] == nullptr){
+				if (mHeroes[index] == nullptr){
 					//ÅÐ¶ÏÊÇ·ñ·ûºÏ¹æÔò
 					if (!initNotRepeatForHero(j, indexY, heroes->getId())){
 						break;
@@ -344,47 +384,47 @@ void GameScene::heroEntry(){
 						CallFuncN::create([=](Node * node){
 						hObj->runAction(HeroActionType::Stand);
 					}), NULL));
-					mHeros[index] = hObj;
+					mHeroes[index] = hObj;
 					existHeroCount++;
 					break;
 				}
 			}
 		}
 		else if (heroes->getType() == HeroType::Boss){
-			for (int j = 0; j < MAX_COLUMN - 1; j++){
-				int index = j * MAX_ROW + indexY;
-				if (indexY == 0){//ÉÏ±ß½ç
-					if (mHeros[index] == nullptr && mHeros[index + 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1] == nullptr){//Õ¼ËÄ¸öµØ·½
-						addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
-						existHeroCount++;
-						break;
-					}
-				}
-				else if (indexY == MAX_ROW - 1){//ÏÂ±ß½ç
-					if (mHeros[index] == nullptr && mHeros[index - 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1] == nullptr){//Õ¼ËÄ¸öµØ·½
-						addBoss(index - 1, j, indexY - 1, hStartY - indexY * heroH + heroH / 2, heroes);
-						existHeroCount++;
-						break;
-					}
-				}
-				else{//ÖÐ¼ä
-					if (mHeros[index] == nullptr && mHeros[index + 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW + 1] == nullptr){//Õ¼ËÄ¸öµØ·½
-						addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
-						existHeroCount++;
-						break;
-					}
-					else if (mHeros[index] == nullptr && mHeros[index - 1] == nullptr
-						&& mHeros[index + MAX_ROW] == nullptr && mHeros[index + MAX_ROW - 1] == nullptr){//Õ¼ËÄ¸öµØ·½
-						//tag , (0,0) , px py , hero
-						addBoss(index - 1, j, indexY - 1,  hStartY - indexY * heroH + heroH / 2, heroes);
-						existHeroCount++;
-						break;
-					}
-				}
-			}
+			//for (int j = 0; j < MAX_COLUMN - 1; j++){
+			//	int index = j * MAX_ROW + indexY;
+			//	if (indexY == 0){//ÉÏ±ß½ç
+			//		if (mHeroes[index] == nullptr && mHeroes[index + 1] == nullptr
+			//			&& mHeroes[index + MAX_ROW] == nullptr && mHeroes[index + MAX_ROW + 1] == nullptr){//Õ¼ËÄ¸öµØ·½
+			//			addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
+			//			existHeroCount++;
+			//			break;
+			//		}
+			//	}
+			//	else if (indexY == MAX_ROW - 1){//ÏÂ±ß½ç
+			//		if (mHeroes[index] == nullptr && mHeroes[index - 1] == nullptr
+			//			&& mHeroes[index + MAX_ROW] == nullptr && mHeroes[index + MAX_ROW - 1] == nullptr){//Õ¼ËÄ¸öµØ·½
+			//			addBoss(index - 1, j, indexY - 1, hStartY - indexY * heroH + heroH / 2, heroes);
+			//			existHeroCount++;
+			//			break;
+			//		}
+			//	}
+			//	else{//ÖÐ¼ä
+			//		if (mHeroes[index] == nullptr && mHeroes[index + 1] == nullptr
+			//			&& mHeroes[index + MAX_ROW] == nullptr && mHeroes[index + MAX_ROW + 1] == nullptr){//Õ¼ËÄ¸öµØ·½
+			//			addBoss(index, j, indexY, hStartY - indexY * heroH - heroH / 2, heroes);
+			//			existHeroCount++;
+			//			break;
+			//		}
+			//		else if (mHeroes[index] == nullptr && mHeroes[index - 1] == nullptr
+			//			&& mHeroes[index + MAX_ROW] == nullptr && mHeroes[index + MAX_ROW - 1] == nullptr){//Õ¼ËÄ¸öµØ·½
+			//			//tag , (0,0) , px py , hero
+			//			addBoss(index - 1, j, indexY - 1,  hStartY - indexY * heroH + heroH / 2, heroes);
+			//			existHeroCount++;
+			//			break;
+			//		}
+			//	}
+			//}
 		}
 	}
 }
@@ -457,78 +497,78 @@ bool GameScene::initNotRepeatForHero(int indexX, int indexY, int id){
 		int nextNextY = indexY + 2;
 
 		if (indexX >= 2){
-			if (mHeros[lastLastX * MAX_ROW + indexY] != nullptr && mHeros[lastX * MAX_ROW + indexY] != nullptr){
-				if (id == mHeros[lastLastX * MAX_ROW + indexY]->getHero()->getId() &&
-					id == mHeros[lastX * MAX_ROW + indexY]->getHero()->getId()){
+			if (mHeroes[lastLastX * MAX_ROW + indexY] != nullptr && mHeroes[lastX * MAX_ROW + indexY] != nullptr){
+				if (id == mHeroes[lastLastX * MAX_ROW + indexY]->getHero()->getId() &&
+					id == mHeroes[lastX * MAX_ROW + indexY]->getHero()->getId()){
 					return false;
 				}
 			}
 		}
 
 		if (indexY == 0){
-			if (mHeros[indexX * MAX_ROW + nextNextY] == nullptr || mHeros[indexX * MAX_ROW + nextY] == nullptr){
+			if (mHeroes[indexX * MAX_ROW + nextNextY] == nullptr || mHeroes[indexX * MAX_ROW + nextY] == nullptr){
 				return true;
 			}
-			if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-				id == mHeros[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
+			if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+				id == mHeroes[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
 				return false;
 			}
 		}
 		else if (indexY == 1){
-			if (mHeros[indexX * MAX_ROW + nextY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + nextY] != nullptr && mHeroes[indexX * MAX_ROW + lastY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId()){
 					return false;
 				}
 			}
-			if (mHeros[indexX * MAX_ROW + nextNextY] == nullptr || mHeros[indexX * MAX_ROW + nextY] == nullptr){
+			if (mHeroes[indexX * MAX_ROW + nextNextY] == nullptr || mHeroes[indexX * MAX_ROW + nextY] == nullptr){
 				return true;
 			}
-			if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-				id == mHeros[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
+			if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+				id == mHeroes[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
 				return false;
 			}
 		}
 		else if (indexY == MAX_ROW - 1){
-			if (mHeros[indexX * MAX_ROW + lastLastY] == nullptr || mHeros[indexX * MAX_ROW + lastY] == nullptr){
+			if (mHeroes[indexX * MAX_ROW + lastLastY] == nullptr || mHeroes[indexX * MAX_ROW + lastY] == nullptr){
 				return true;
 			}
-			if (id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
-				id == mHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
+			if (id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId() &&
+				id == mHeroes[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 				return false;
 			}
 		}
 		else if (indexY == MAX_ROW - 2){
-			if (mHeros[indexX * MAX_ROW + nextY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + nextY] != nullptr && mHeroes[indexX * MAX_ROW + lastY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId()){
 					return false;
 				}
 			}
 
-			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + lastLastY] != nullptr && mHeroes[indexX * MAX_ROW + lastY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 					return false;
 				}
 			}
 		}
 		else{
-			if (mHeros[indexX * MAX_ROW + nextY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + nextY] != nullptr && mHeroes[indexX * MAX_ROW + lastY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId()){
 					return false;
 				}
 			}
-			if (mHeros[indexX * MAX_ROW + lastLastY] != nullptr && mHeros[indexX * MAX_ROW + lastY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + lastY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + lastLastY] != nullptr && mHeroes[indexX * MAX_ROW + lastY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + lastY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + lastLastY]->getHero()->getId()){
 					return false;
 				}
 			}
-			if (mHeros[indexX * MAX_ROW + nextNextY] != nullptr &&  mHeros[indexX * MAX_ROW + nextY] != nullptr){
-				if (id == mHeros[indexX * MAX_ROW + nextY]->getHero()->getId() &&
-					id == mHeros[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
+			if (mHeroes[indexX * MAX_ROW + nextNextY] != nullptr &&  mHeroes[indexX * MAX_ROW + nextY] != nullptr){
+				if (id == mHeroes[indexX * MAX_ROW + nextY]->getHero()->getId() &&
+					id == mHeroes[indexX * MAX_ROW + nextNextY]->getHero()->getId()){
 					return false;
 				}
 			}
@@ -639,34 +679,34 @@ bool GameScene::initNotRepeatForMonster(int indexX, int indexY, int id){
 }
 
 void GameScene::addBoss(int index, int indexX, int indexY, int posionY, BaseHeroes* heroes){
-	HeroObj * hObj = HeroObj::create();
-	hObj->retain();
-	hObj->setIsMonster(false);
-	hObj->setIndexX(indexX);
-	hObj->setIndexY(indexY);
-	hObj->setpositionY(posionY);
-	hObj->setpositionX(hObj->getpositionX() - heroW / 4);
-	hObj->setHero(heroes);
-	std::string name = heroes->getName();
-	std::string nodeName = String::createWithFormat("%s.csb", name.c_str())->getCString();
-	auto hero = CSLoader::createNode(nodeName.c_str());
-	hero->setAnchorPoint(Vec2(0.5,0.5));
-	hero->setPosition(-120, hObj->getpositionY());
-	hero->setScaleX(-1.0f);
-	//hero->setScaleY(1.5f);
-	hObj->addNode(gameSceneLayout, hero);
-	//³ö³¡¶¯»­
-	ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
-	hero->runAction(action);
-	hObj->setAction(action);
-	hObj->runAction(HeroActionType::Run);
-	hero->runAction(Sequence::create(DelayTime::create(0.2f * indexX), MoveTo::create(0.2f * (MAX_COLUMN + 1 - indexX), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
-		hObj->runAction(HeroActionType::Stand);
-	}), NULL));
-	mHeros[index] = hObj;
-	mHeros[index + 1] = hObj;
-	mHeros[index + MAX_ROW] = hObj;
-	mHeros[index + MAX_ROW + 1] = hObj;
+	//HeroObj * hObj = HeroObj::create();
+	//hObj->retain();
+	//hObj->setIsMonster(false);
+	//hObj->setIndexX(indexX);
+	//hObj->setIndexY(indexY);
+	//hObj->setpositionY(posionY);
+	//hObj->setpositionX(hObj->getpositionX() - heroW / 4);
+	//hObj->setHero(heroes);
+	//std::string name = heroes->getName();
+	//std::string nodeName = String::createWithFormat("%s.csb", name.c_str())->getCString();
+	//auto hero = CSLoader::createNode(nodeName.c_str());
+	//hero->setAnchorPoint(Vec2(0.5,0.5));
+	//hero->setPosition(-120, hObj->getpositionY());
+	//hero->setScaleX(-1.0f);
+	////hero->setScaleY(1.5f);
+	//hObj->addNode(gameSceneLayout, hero);
+	////³ö³¡¶¯»­
+	//ActionTimeline * action = CSLoader::createTimeline(nodeName.c_str());
+	//hero->runAction(action);
+	//hObj->setAction(action);
+	//hObj->runAction(HeroActionType::Run);
+	//hero->runAction(Sequence::create(DelayTime::create(0.2f * indexX), MoveTo::create(0.2f * (MAX_COLUMN + 1 - indexX), Vec2(hObj->getpositionX(), hObj->getpositionY())), CallFuncN::create([hObj](Node * node){
+	//	hObj->runAction(HeroActionType::Stand);
+	//}), NULL));
+	//mHeros[index] = hObj;
+	//mHeros[index + 1] = hObj;
+	//mHeros[index + MAX_ROW] = hObj;
+	//mHeros[index + MAX_ROW + 1] = hObj;
 }
 
 bool GameScene::onTouchBegan(Touch * pTouch, Event * pEvent){
@@ -734,7 +774,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 		if (mCurrentHero == nullptr){
 			int indexHero = -1;
 			for (int i = 0; i < MAX_COLUMN; i++){
-				if (mHeros[i * MAX_COLUMN + index] != nullptr){
+				if (mHeroes[i * MAX_COLUMN + index] != nullptr){
 					indexHero = i * MAX_COLUMN + index;
 				}
 				else{
@@ -744,8 +784,8 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 			if (indexHero == -1){
 				return;
 			}
-			if (mHeros[indexHero]->getActionType() == HeroActionType::Stand && mHeros[indexHero]->getHero()->getType() == HeroType::Hero){
-				mCurrentHero = mHeros[indexHero];
+			if (mHeroes[indexHero]->getActionType() == HeroActionType::Stand && mHeroes[indexHero]->getHero()->getType() == HeroType::Hero){
+				mCurrentHero = mHeroes[indexHero];
 				mCurrentHero->getMCurrentNode()->runAction(FadeTo::create(0.2f, 125));
 				return;
 			}
@@ -804,7 +844,7 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 			}
 			int indexXHero = -1;
 			for (int i = 0; i < MAX_COLUMN; i++){
-				if (mHeros[i * MAX_COLUMN + index] == nullptr){
+				if (mHeroes[i * MAX_COLUMN + index] == nullptr){
 					indexXHero = i;
 					break;
 				}
@@ -820,14 +860,14 @@ void GameScene::onTouchEnded(Touch * pTouch, Event * pEvent){
 			mCurrentHero->getMCurrentNode()->runAction(Sequence::create(MoveTo::create(0.1f *(MAX_COLUMN - mCurrentHero->getIndexX()), Vec2(-60, mCurrentHero->getpositionY())),
 				MoveTo::create(0, Vec2(-60, posY)), MoveTo::create(0.1f * (MAX_COLUMN - indexXHero), Vec2(posX, posY)), FadeTo::create(0.2f, 255),
 				CallFunc::create([=](){
-				mHeros[mCurrentHero->getIndexX() * MAX_COLUMN + mCurrentHero->getIndexY()] = nullptr;
+				mHeroes[mCurrentHero->getIndexX() * MAX_COLUMN + mCurrentHero->getIndexY()] = nullptr;
 				mCurrentHero->setIndexX(indexXHero);
 				mCurrentHero->setIndexY(index);
 				mCurrentHero->updateNode();
-				mHeros[indexXHero * MAX_COLUMN + index] = mCurrentHero;
+				mHeroes[indexXHero * MAX_COLUMN + index] = mCurrentHero;
 			}), CallFunc::create([=](){
 				//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
-				mHeroPrepareAndDef(true,mHeros);
+				mHeroPrepareAndDef(true,mHeroes);
 				mCurrentHero = nullptr;
 				isActionRuning = false;
 				
@@ -846,30 +886,30 @@ void GameScene::onLongTouchDown(float delay){
 	int indexX = posX / heroW;
 	int indexY = posY / heroH;
 	if (indexX >= 0 && indexX < MAX_COLUMN && indexY >= 0 && indexY < MAX_ROW){
-		HeroObj* hero = mHeros[indexX * MAX_ROW + indexY];
+		HeroObj* hero = mHeroes[indexX * MAX_ROW + indexY];
 		if (hero != nullptr && (hero->getActionType() == HeroActionType::Stand || hero->getActionType() == HeroActionType::Def)){
 			//ActionTimeline * action = static_cast<ActionTimeline *>(hero->getMNode()->getActionByTag(hero->getID()));
 			//action->play("hit",false);
 			//action->setLastFrameCallFunc([=](){
-			gameSceneLayout->removeChild(mHeros[indexX * MAX_ROW + indexY]->getMCurrentNode(), true);
-			mHeros[indexX * MAX_ROW + indexY] = nullptr;
+			gameSceneLayout->removeChild(mHeroes[indexX * MAX_ROW + indexY]->getMCurrentNode(), true);
+			mHeroes[indexX * MAX_ROW + indexY] = nullptr;
 			existHeroCount--;
 			updateHeroCount();
 			for (int i = indexX + 1; i < MAX_COLUMN; i++){
-				if (mHeros[i * MAX_ROW + indexY] != nullptr){
-					HeroObj * mHero = mHeros[i * MAX_ROW + indexY];
+				if (mHeroes[i * MAX_ROW + indexY] != nullptr){
+					HeroObj * mHero = mHeroes[i * MAX_ROW + indexY];
 					mHero->setIndexX(i - 1);
 					mHero->updateNode();
 					mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
-					mHeros[(i - 1) * MAX_ROW + indexY] = mHero;
-					mHeros[i * MAX_ROW + indexY] = nullptr;
+					mHeroes[(i - 1) * MAX_ROW + indexY] = mHero;
+					mHeroes[i * MAX_ROW + indexY] = nullptr;
 				}
 				else{
 					break;
 				}
 			}
 			//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
-			mHeroPrepareAndDef(true,mHeros);
+			mHeroPrepareAndDef(true,mHeroes);
 			//});
 			hero = nullptr;
 		}
@@ -970,8 +1010,8 @@ void GameScene::mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈ
 		}
 		log(" repeatHero = %d ", repeatHero.size());
 		if (repeatHero.empty()){
-			mHeroDefAction(allVHeroes);
-			mHeroPrepareAction(allHHeroes);
+			mHeroDefAction(allVHeroes, mHeros);
+			mHeroPrepareAction(allHHeroes, mHeros);
 		}
 		else{
 			//ÓÐÖØ¸´µÄ¾Í¶àÌîÒ»¸ö   ×ÜÊýÁ¿¼õÒ»
@@ -995,8 +1035,8 @@ void GameScene::mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈ
 					}
 				}
 			}
-			mHeroPrepareAction(allHHeroes);
-			mHeroDefAction(allVHeroes);
+			mHeroPrepareAction(allHHeroes, mHeros);
+			mHeroDefAction(allVHeroes, mHeros);
 			//´ÎÊý¼ÓÒ»
 			if (isAiRound){
 				monsterActCount++;
@@ -1032,11 +1072,11 @@ void GameScene::mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈ
 	}
 	else if (!allHHeroes.empty()){
 		//log(" allHHeroes ", allHHeroes.size());
-		mHeroPrepareAction(allHHeroes);
+		mHeroPrepareAction(allHHeroes, mHeros);
 	}
 	else if (!allVHeroes.empty()){
 		//log(" allVHeroes ", allVHeroes.size());
-		mHeroDefAction(allVHeroes);
+		mHeroDefAction(allVHeroes, mHeros);
 	}
 	if (isClick){//ÊÇÈËµ¥»÷¾Í¼õÉÙÒ»´Î
 		//»ØºÏ¹ýºó²»¼õ
@@ -1054,7 +1094,7 @@ void GameScene::mHeroPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈ
 	}
 }
 
-void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
+void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to, HeroObj * mHeros[]){
 	int indexX;
 	if (to != nullptr && to->getActionType() == HeroActionType::Def){
 		return;
@@ -1067,15 +1107,26 @@ void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
 		to->setIndexX(indexX);
 		to->updateNode();
 		mHeros[to->getId()] = to;
-		from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
-		to->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(-heroW, 0)));
+		if (from->getIsMonster()){
+			from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(-heroW, 0)));
+			to->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
+		}
+		else{
+			from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
+			to->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(-heroW, 0)));
+		}
 	}
 	else{
 		mHeros[from->getId()] = nullptr;
 		from->setIndexX(from->getIndexX() - 1);
 		from->updateNode();
 		mHeros[from->getId()] = from;
-		from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
+		if (from->getIsMonster()){
+			from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(-heroW, 0)));
+		}
+		else{
+			from->getMCurrentNode()->runAction(MoveBy::create(0.1f, Vec2(heroW, 0)));
+		}
 	}
 	//ÒÆ¶¯Íêºó
 	stopActionByTag(SwapActionTag);
@@ -1086,32 +1137,37 @@ void GameScene::swapHeroPosition(HeroObj * from, HeroObj * to){
 	runAction(action);
 }
 
-void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes){
+void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes, HeroObj * mHeros[]){
 	for (auto hHeroes = allHHeroes.begin(); hHeroes != allHHeroes.end(); hHeroes++){
-		std::vector<HeroObj *>  heroes;
+		std::vector<HeroObj *>  heroes = std::vector<HeroObj *>();
 		for (unsigned int i = 0; i < (*hHeroes).size(); i++){
 			heroes.push_back((*hHeroes).at(i));
 			if ((i + 1) % 3 == 0){//3¸öÎªÒ»×é
 				for (int j = 0; j < 3; j++){
 					//×¼±¸¶¯»­
 					heroes[j]->prepare(j == 1);
-					heroes[j]->setTargetPosX(mSceneSize.width - (j + 1) * heroW);
+					if (heroes[j]->getIsMonster()){
+						heroes[j]->setTargetPosX((j + 1) * heroW);
+					}
+					else{
+						heroes[j]->setTargetPosX(mSceneSize.width - (j + 1) * heroW);
+					}
 					heroes[j]->setTargetPosY(heroes[j]->getpositionY());
 				}
 				//×¼±¸ºÃºó ÒÆ¶¯
-				for (int i = heroes[0]->getIndexX() - 1; i >= 0; i--){
-					HeroObj * obj = mHeros[i * MAX_ROW + heroes[0]->getIndexY()];
+				for (int k = heroes[0]->getIndexX() - 1; k >= 0; k--){
+					HeroObj * obj = mHeros[k * MAX_ROW + heroes[0]->getIndexY()];
 					if (obj != nullptr && obj->getActionType() == HeroActionType::Prepare  //pre ²¢ÇÒÏàÍ¬  ¹¥»÷Ã»ÓÐ¼Ó±¶  ¶ÔÏóÃ»ÓÐ´Ó×¼±¸ÖÐÏûÊ§
 						&& obj->getHero()->getId() == heroes[0]->getHero()->getId()){
-						for (int i = 0; i < 3; i++){
-							HeroObj * heroItem = heroes[i];
+						for (int m = 0; m < 3; m++){
+							HeroObj * heroItem = heroes[m];
 							heroItem->getMCurrentNode()->runAction(Sequence::create(MoveTo::create(0.3f,
 								Vec2(heroItem->getpositionX() + heroW, heroItem->getpositionY())),
 								CallFuncN::create([=](Node * node){
 								gameSceneLayout->removeChild(node);
 								mHeros[heroItem->getId()] = nullptr;
 								//×îºóÒ»¸öÒÆ¶¯ ÅÐ¶ÏºóÃæÓÐÃ»ÓÐhero
-								if (i == 2){
+								if (m == 2){
 									for (int j = heroItem->getIndexX() + 1; j < MAX_COLUMN; j++){
 										HeroObj * heroLast = mHeros[j * MAX_ROW + heroItem->getIndexY()];
 										if (heroLast != nullptr){
@@ -1131,19 +1187,24 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 						break;
 					}
 					else {
-						for (int i = 0; i < 3; i++){
-							swapHeroPosition(heroes[i], obj);
+						for (int n = 0; n < 3; n++){
+							swapHeroPosition(heroes[n], obj,mHeros);
 						}
 					}
 				}
-				prepareHeroes.push_back(heroes);//Ìí¼Óµ½ÒÑ¾­×¼±¸µÄÓ¢ÐÛ×éÖÐ
+				if ((*hHeroes).at(i)->getIsMonster()){
+					prepareMonster.push_back(heroes);
+				}
+				else{
+					prepareHeroes.push_back(heroes);//Ìí¼Óµ½ÒÑ¾­×¼±¸µÄÓ¢ÐÛ×éÖÐ
+				}
 			}
 		}
 	}
 
 }
 
-void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
+void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes, HeroObj * mHeros[]){
 	for (auto vHeroes = allVHeroes.begin(); vHeroes != allVHeroes.end(); vHeroes++){
 		for (auto hero : (*vHeroes)){
 			hero->def();
@@ -1155,170 +1216,402 @@ void GameScene::mHeroDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
 			}
 			else{
 				for (int i = hero->getIndexX(); i > 0; i--){
-					swapHeroPosition(mHeros[i * MAX_ROW + hero->getIndexY()], mHeros[(i - 1) * MAX_ROW + hero->getIndexY()]);
+					swapHeroPosition(mHeros[i * MAX_ROW + hero->getIndexY()], mHeros[(i - 1) * MAX_ROW + hero->getIndexY()],mHeros);
 				}
 			}
 		}
 	}
 }
 
-void GameScene::monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈËµã»÷ runHeroPosition()  //¼ÆËãÐÐ¶¯´ÎÊý
-	std::vector<std::vector<HeroObj *>> allHMonsters;
-	std::vector<std::vector<HeroObj *>> allVMonsters;
-	int id;
-	for (int i = 0; i < MAX_ROW; i++){//ÐÐ
-		std::vector<HeroObj *> hHeroes;
-		for (int j = 0; j < MAX_COLUMN; j++){//ÁÐ
-			HeroObj * hero = monsterHeros[j * MAX_ROW + i];
-			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
-				if (hHeroes.empty()){
-					id = hero->getHero()->getId();
-					hHeroes.push_back(hero);
-					continue;
+//void GameScene::monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]){//ÅÐ¶ÏÊÇ·ñÈËµã»÷ runHeroPosition()  //¼ÆËãÐÐ¶¯´ÎÊý
+//	std::vector<std::vector<HeroObj *>> allHMonsters;
+//	std::vector<std::vector<HeroObj *>> allVMonsters;
+//	int id;
+//	for (int i = 0; i < MAX_ROW; i++){//ÐÐ
+//		std::vector<HeroObj *> hHeroes;
+//		for (int j = 0; j < MAX_COLUMN; j++){//ÁÐ
+//			HeroObj * hero = monsterHeros[j * MAX_ROW + i];
+//			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
+//				if (hHeroes.empty()){
+//					id = hero->getHero()->getId();
+//					hHeroes.push_back(hero);
+//					continue;
+//				}
+//				if (id == hero->getHero()->getId()){
+//					hHeroes.push_back(hero);
+//				}
+//				else{
+//					if (hHeroes.size() >= 3){
+//						allHMonsters.push_back(hHeroes);
+//					}
+//					hHeroes.clear();
+//					id = hero->getHero()->getId();
+//					hHeroes.push_back(hero);
+//				}
+//			}
+//			else{
+//				if (hHeroes.size() >= 3){
+//					allHMonsters.push_back(hHeroes);
+//				}
+//				hHeroes.clear();
+//			}
+//		}
+//		if (hHeroes.size() >= 3){
+//			allHMonsters.push_back(hHeroes);
+//		}
+//		hHeroes.clear();
+//	}
+//	for (int i = 0; i < MAX_COLUMN; i++){//ÁÐ
+//		std::vector<HeroObj *> vHeroes;
+//		for (int j = 0; j < MAX_ROW; j++){//ÐÐ
+//			HeroObj * hero = monsterHeros[i * MAX_ROW + j];
+//			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
+//				if (vHeroes.empty()){
+//					id = hero->getHero()->getId();
+//					vHeroes.push_back(hero);
+//					continue;
+//				}
+//				if (id == hero->getHero()->getId()){
+//					vHeroes.push_back(hero);
+//				}
+//				else{
+//					if (vHeroes.size() >= 3){
+//						allVMonsters.push_back(vHeroes);
+//					}
+//					vHeroes.clear();
+//					id = hero->getHero()->getId();
+//					vHeroes.push_back(hero);
+//				}
+//			}
+//			else{
+//				if (vHeroes.size() >= 3){
+//					allVMonsters.push_back(vHeroes);
+//				}
+//				vHeroes.clear();
+//			}
+//		}
+//		if (vHeroes.size() >= 3){
+//			allVMonsters.push_back(vHeroes);
+//		}
+//		vHeroes.clear();
+//	}
+//	if (!allHMonsters.empty() && !allVMonsters.empty()){
+//		//É¸Ñ¡ÖØ¸´µÄhero
+//		std::vector<HeroObj *> repeatHero;
+//		for (auto hHeroes : allHMonsters){
+//			for (auto hHero : hHeroes){
+//				for (auto vHeroes : allVMonsters){
+//					for (auto vHero : vHeroes){
+//						if (hHero->getId() == vHero->getId()){
+//							repeatHero.push_back(hHero);
+//							break;
+//						}
+//					}
+//				}
+//			}
+//		}
+//		if (repeatHero.empty()){
+//			monsterDefAction(allVMonsters);
+//			monsterPrepareAction(allHMonsters);
+//		}
+//		else{
+//			//ÓÐÖØ¸´µÄ¾Í¶àÌîÒ»¸ö   ×ÜÊýÁ¿¼õÒ»
+//			for (auto hero : repeatHero){
+//				for (int i = hero->getIndexX() + 1; i < MAX_COLUMN; i++){
+//					int index = i*MAX_COLUMN + hero->getIndexY();
+//					if (monsterHeros[index] == nullptr){
+//						HeroObj * h = hero->cloneThis(i);
+//						for (auto& vHeroes : allVMonsters){//´øÉÏ&  ´ú±íÎÒÒªÐÞ¸ÄÁÐ±íÖÐµÄÖµ  µÈÍ¬ÓÚ begin end
+//							for (auto vHero = vHeroes.begin(); vHero != vHeroes.end(); vHero++){
+//								if (hero->getId() == (*vHero)->getId()){
+//									vHeroes.erase(vHero);
+//									vHeroes.push_back(h);
+//									monsterHeros[index] = h;
+//									//É¾³ýÔ­Êý×éÖÐµÄ  Ìí¼ÓÒ»¸öºóÃæµÄ
+//									break;
+//								}
+//							}
+//						}
+//						break;
+//					}
+//				}
+//			}
+//			monsterPrepareAction(allHMonsters);
+//			monsterDefAction(allVMonsters);
+//			//´ÎÊý¼ÓÒ»
+//			if (isAiRound){
+//				monsterActCount++;
+//			}
+//			else{
+//				mActCount++;
+//			}
+//			updateActTime();
+//
+//		}
+//
+//	}
+//	else if (!allHMonsters.empty()){
+//		monsterPrepareAction(allHMonsters);
+//	}
+//	else if (!allVMonsters.empty()){
+//		monsterDefAction(allVMonsters);
+//	}
+//	if (isClick){//ÊÇÈËµ¥»÷¾Í¼õÉÙÒ»´Î
+//		//»ØºÏ¹ýºó²»¼õ
+//		//´ÎÊý¼õÒ»
+//		monsterActCount--;
+//		updateActTime();
+//		if (monsterActCount <= 0 ){
+//			actRoundChage();
+//		}
+//	}
+//}
+//void GameScene::monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes){
+//
+//}
+//void GameScene::monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
+//
+//}
+//void GameScene::swapMonsterPosition(HeroObj * from, HeroObj * to){
+//
+//}
+//void GameScene::runMonsterPosition(){
+//	
+//}
+
+void GameScene::aiSchedule(float delay){
+	if (monsterActCount <= 0){
+		return;
+	}
+	bool isWalk = false;
+	if (isAiRound && !isActionRuning){
+		HeroObj * mSelectObj;
+		//HeroObj * mMidObj;
+		//ºáÏò Ò»²½ ÏûÊ§
+		for (int i = 0; i < MAX_ROW; i++){
+			//
+			int standCount = 0;
+			for (int j = 0; j < MAX_COLUMN; j++){
+				int index = j * MAX_ROW + i;
+				if (monsterHeros[index] == nullptr){
+					break;
 				}
-				if (id == hero->getHero()->getId()){
-					hHeroes.push_back(hero);
+				if (monsterHeros[index]->getActionType() == HeroActionType::Stand){
+					standCount++;
 				}
 				else{
-					if (hHeroes.size() >= 3){
-						allHMonsters.push_back(hHeroes);
-					}
-					hHeroes.clear();
-					id = hero->getHero()->getId();
-					hHeroes.push_back(hero);
+					standCount = 0;
 				}
-			}
-			else{
-				if (hHeroes.size() >= 3){
-					allHMonsters.push_back(hHeroes);
-				}
-				hHeroes.clear();
-			}
-		}
-		if (hHeroes.size() >= 3){
-			allHMonsters.push_back(hHeroes);
-		}
-		hHeroes.clear();
-	}
-	for (int i = 0; i < MAX_COLUMN; i++){//ÁÐ
-		std::vector<HeroObj *> vHeroes;
-		for (int j = 0; j < MAX_ROW; j++){//ÐÐ
-			HeroObj * hero = monsterHeros[i * MAX_ROW + j];
-			if (hero != nullptr && hero->getActionType() == HeroActionType::Stand && hero->getHero()->getType() != HeroType::Boss){
-				if (vHeroes.empty()){
-					id = hero->getHero()->getId();
-					vHeroes.push_back(hero);
-					continue;
-				}
-				if (id == hero->getHero()->getId()){
-					vHeroes.push_back(hero);
-				}
-				else{
-					if (vHeroes.size() >= 3){
-						allVMonsters.push_back(vHeroes);
-					}
-					vHeroes.clear();
-					id = hero->getHero()->getId();
-					vHeroes.push_back(hero);
-				}
-			}
-			else{
-				if (vHeroes.size() >= 3){
-					allVMonsters.push_back(vHeroes);
-				}
-				vHeroes.clear();
-			}
-		}
-		if (vHeroes.size() >= 3){
-			allVMonsters.push_back(vHeroes);
-		}
-		vHeroes.clear();
-	}
-	if (!allHMonsters.empty() && !allVMonsters.empty()){
-		//É¸Ñ¡ÖØ¸´µÄhero
-		std::vector<HeroObj *> repeatHero;
-		for (auto hHeroes : allHMonsters){
-			for (auto hHero : hHeroes){
-				for (auto vHeroes : allVMonsters){
-					for (auto vHero : vHeroes){
-						if (hHero->getId() == vHero->getId()){
-							repeatHero.push_back(hHero);
-							break;
-						}
-					}
-				}
-			}
-		}
-		if (repeatHero.empty()){
-			monsterDefAction(allVMonsters);
-			monsterPrepareAction(allHMonsters);
-		}
-		else{
-			//ÓÐÖØ¸´µÄ¾Í¶àÌîÒ»¸ö   ×ÜÊýÁ¿¼õÒ»
-			for (auto hero : repeatHero){
-				for (int i = hero->getIndexX() + 1; i < MAX_COLUMN; i++){
-					int index = i*MAX_COLUMN + hero->getIndexY();
-					if (monsterHeros[index] == nullptr){
-						HeroObj * h = hero->cloneThis(i);
-						for (auto& vHeroes : allVMonsters){//´øÉÏ&  ´ú±íÎÒÒªÐÞ¸ÄÁÐ±íÖÐµÄÖµ  µÈÍ¬ÓÚ begin end
-							for (auto vHero = vHeroes.begin(); vHero != vHeroes.end(); vHero++){
-								if (hero->getId() == (*vHero)->getId()){
-									vHeroes.erase(vHero);
-									vHeroes.push_back(h);
-									monsterHeros[index] = h;
-									//É¾³ýÔ­Êý×éÖÐµÄ  Ìí¼ÓÒ»¸öºóÃæµÄ
-									break;
-								}
+				//mSelectObj
+				if (standCount >= 4){
+					mSelectObj = monsterHeros[(j - 3)* MAX_ROW + i];
+					int lastIndex = (j - 2)* MAX_ROW + i;
+					int lastLastIndex = (j - 1)* MAX_ROW + i;
+					int lastLastLastIndex = j * MAX_ROW + i;
+					int mCurrrntId = mSelectObj->getHero()->getId();
+					if (mCurrrntId == monsterHeros[lastIndex]->getHero()->getId()
+						&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
+						// 1 1 0 1
+						gameSceneLayout->removeChild(monsterHeros[lastLastIndex]->getMCurrentNode(), true);
+						monsterHeros[lastLastIndex] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = j; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + i] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + i];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+								monsterHeros[k * MAX_ROW + i] = nullptr;
+							}
+							else{
+								break;
 							}
 						}
+						//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
+						mHeroPrepareAndDef(true,monsterHeros);
+						isActionRuning = true;
+						isWalk = true;
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}),NULL));
+						break;
+					}
+					else if (mCurrrntId == monsterHeros[lastLastIndex]->getHero()->getId()
+						&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
+						// 1 0 1 1 
+						gameSceneLayout->removeChild(monsterHeros[lastIndex]->getMCurrentNode(), true);
+						monsterHeros[lastIndex] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = j - 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + i] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + i];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+								monsterHeros[k * MAX_ROW + i] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
+						mHeroPrepareAndDef(true, monsterHeros);
+						isActionRuning = true;
+						isWalk = true;
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}), NULL));
 						break;
 					}
 				}
 			}
-			monsterPrepareAction(allHMonsters);
-			monsterDefAction(allVMonsters);
-			//´ÎÊý¼ÓÒ»
-			if (isAiRound){
-				monsterActCount++;
+			if (isWalk){
+				break;
 			}
-			else{
-				mActCount++;
+		}
+
+		if (isWalk){
+			return;
+		}
+
+		//ºáÏò Ò»²½ ÒÆ¶¯
+		for (int i = 0; i < MAX_COLUMN; i++){
+			for (int j = MAX_COLUMN - 1; j > 0 ; j--){
+				int index = j * MAX_ROW + i;
+				if (monsterHeros[index] == nullptr){
+					continue;
+				}
+				if (monsterHeros[index]->getActionType() != HeroActionType::Stand){
+					break;
+				}
+				if (monsterHeros[index]->getHero()->getId() == monsterHeros[index - MAX_ROW]->getHero()->getId()){
+					for (int k = 0; k < MAX_COLUMN; k++){
+						bool isCan = false;
+						HeroObj * mCurrentMonster = nullptr ;
+
+						for (int l = MAX_COLUMN - 1; l >= 0; l--){
+							int index2 = l * MAX_ROW + k;
+							if (monsterHeros[index2] == nullptr){
+								continue;
+							}
+							if (monsterHeros[index2]->getActionType() != HeroActionType::Stand){
+								break;
+							}
+							/*if (l > 0){ // ÓÐµã¸´ÔÓ...
+								if (monsterHeros[index]->getHero()->getId() == monsterHeros[index2]->getHero()->getId()
+									&& monsterHeros[index]->getHero()->getId() != monsterHeros[index2 - MAX_ROW]->getHero()->getId()){
+
+								}
+								else{
+									
+								}
+							}
+							else{
+								if (monsterHeros[index]->getHero()->getId() == monsterHeros[k]->getHero()->getId()){
+									
+								}
+							}*/
+							if (monsterHeros[index]->getHero()->getId() == monsterHeros[index2]->getHero()->getId()){
+								isCan = true;
+								mCurrentMonster = monsterHeros[index2];
+								break;
+							}
+							else{
+								break;
+							}
+						}
+						if (isCan && i != k){
+							isActionRuning = true;
+							isWalk = true;
+							mCurrentMonster->getMCurrentNode()->runAction(Sequence::create(FadeTo::create(0.2f, 125),DelayTime::create(0.3f),
+								MoveTo::create(0.1f *(MAX_COLUMN - mCurrentMonster->getIndexX()), Vec2(mSceneSize.width + 60, mCurrentMonster->getpositionY())),
+								MoveTo::create(0, Vec2(mSceneSize.width + 60, monsterHeros[index]->getpositionY())), MoveTo::create(0.1f * (MAX_COLUMN - i - 1),
+								Vec2(monsterHeros[index]->getpositionX() + heroW, monsterHeros[index]->getpositionY())), FadeTo::create(0.2f, 255),
+							CallFunc::create([=](){
+								monsterHeros[mCurrentMonster->getId()] = nullptr;
+								mCurrentMonster->setIndexX(j+1);
+								mCurrentMonster->setIndexY(i);
+								mCurrentMonster->updateNode();
+								monsterHeros[index + MAX_ROW] = mCurrentMonster;
+							}), CallFunc::create([=](){
+									//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
+								mHeroPrepareAndDef(true, monsterHeros);
+								this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+									isActionRuning = false;
+								}), NULL));
+							}), NULL));
+							break;
+						}
+					}
+				}
+				else{
+					break;
+				}
 			}
+			if (isWalk){
+				break;
+			}
+		}
+
+		if (isWalk){
+			return;
+		}
+
+		//ºáÏò Á½²½ ÏûÊ§
+		for (int i = 0; i < MAX_COLUMN; i++){
+			//
+
+
+
+
+		}
+
+		if (isWalk){
+			return;
+		}
+
+		//ºáÏò Á½²½ ÒÆ¶¯
+		for (int i = 0; i < MAX_COLUMN; i++){
+			//
+
+
+
+
+		}
+
+		//×ÝÏò Ò»²½ ÏûÊ§
+		//×ÝÏò Ò»²½ ÒÆ¶¯
+
+		//³ö±ø
+		if (monstersAI->getHeroesCount() - existMonsterCount >= 1){
+			isActionRuning = true;
+			monsterEntry();
+			monsterActCount--;
 			updateActTime();
-
+			if (monsterActCount <= 0){
+				actRoundChage();
+			}
+			this->runAction(Sequence::create(DelayTime::create(1.5f), CallFunc::create([=](){
+				isActionRuning = false;
+			}), NULL));
 		}
-
-	}
-	else if (!allHMonsters.empty()){
-		monsterPrepareAction(allHMonsters);
-	}
-	else if (!allVMonsters.empty()){
-		monsterDefAction(allVMonsters);
-	}
-	if (isClick){//ÊÇÈËµ¥»÷¾Í¼õÉÙÒ»´Î
-		//»ØºÏ¹ýºó²»¼õ
-		//´ÎÊý¼õÒ»
-		monsterActCount--;
-		updateActTime();
-		if (monsterActCount <= 0 ){
-			actRoundChage();
+		else{
+			this->runAction(Sequence::create(DelayTime::create(1.5f), CallFunc::create([=](){
+				monsterActCount--;
+				updateActTime();
+				if (monsterActCount <= 0){
+					actRoundChage();
+				}
+			}), NULL));
 		}
 	}
 }
-void GameScene::monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes){
 
-}
-void GameScene::monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes){
-
-}
-void GameScene::swapMonsterPosition(HeroObj * from, HeroObj * to){
-
-}
-void GameScene::runMonsterPosition(){
-	
-}
-
-void GameScene::aiSchedule(float delay){
+void GameScene::timeSchedule(float delay){
 	if (!isRoundChangeing){
 		secCurrentTime--;
 		if (secCurrentTime < 0){
@@ -1326,102 +1619,6 @@ void GameScene::aiSchedule(float delay){
 			actRoundChage();
 		}
 		secTimeAtlas->setString(String::createWithFormat("%d", secCurrentTime)->getCString());
-	}
-	if (isAiRound && !isActionRuning){
-	//	HeroObj * mSelectObj;
-	//	HeroObj * mMidObj;
-	//	//ºáÏò Ò»²½ ÏûÊ§
-	//	for (int i = 0; i < MAX_ROW; i++){
-	//		//
-	//		int standCount = 0;
-	//		for (int j = 0; j < MAX_COLUMN; j++){
-	//			int index = j * MAX_ROW + j;
-	//			if (monsterHeros[index] == nullptr){
-	//				break;
-	//			}
-	//			if (monsterHeros[index]->getActionType() == HeroActionType::Stand){
-	//				standCount++;
-	//			}
-	//			else{
-	//				standCount = 0;
-	//			}
-	//			//mSelectObj
-	//			if (standCount == 4){
-	//				mSelectObj = monsterHeros[(j - 4)* MAX_ROW + i];
-	//				int lastIndex = (j - 3)* MAX_ROW + j;
-	//				int lastLastIndex = (j - 2)* MAX_ROW + j;
-	//				int lastLastLastIndex = (j - 1) * MAX_ROW + j;
-	//				int mCurrrntId = mSelectObj->getHero()->getId();
-	//				if (mCurrrntId == monsterHeros[lastIndex]->getHero()->getId()
-	//					&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
-	//					gameSceneLayout->removeChild(monsterHeros[lastLastIndex]->getMCurrentNode(), true);
-	//					monsterHeros[lastLastIndex] = nullptr;
-	//					existMonsterCount--;
-	//					updateHeroCount();
-	//					for (int k = j - 1; k < MAX_COLUMN; k++){
-	//						if (monsterHeros[k * MAX_ROW + i] != nullptr){
-	//							HeroObj * mHero = monsterHeros[i * MAX_ROW + i];
-	//							mHero->setIndexX(k - 1);
-	//							mHero->updateNode();
-	//							mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
-	//							monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
-	//							monsterHeros[k * MAX_ROW + i] = nullptr;
-	//						}
-	//						else{
-	//							break;
-	//						}
-	//					}
-	//					//ÅÐ¶Ï ×¼±¸ºÍ·ÀÓù
-	//					mHeroPrepareAndDef(true);
-	//				}
-	//				if (mCurrrntId == monsterHeros[lastLastIndex]->getHero()->getId()
-	//					&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
-	//					
-	//				}
-	//			}else if (standCount == 5){
-
-	//			}else if (standCount == 6){
-
-	//			} else if (standCount == 7){
-
-	//			} else if (standCount == 8){
-
-
-	//			}
-	//		}
-	//	}
-
-	//	//ºáÏò Ò»²½ ÒÆ¶¯
-	//	for (int i = 0; i < MAX_COLUMN; i++){
-	//		//
-
-
-
-
-	//	}
-
-	//	//ºáÏò Á½²½ ÏûÊ§
-	//	for (int i = 0; i < MAX_COLUMN; i++){
-	//		//
-
-
-
-
-	//	}
-
-	//	//ºáÏò Á½²½ ÒÆ¶¯
-	//	for (int i = 0; i < MAX_COLUMN; i++){
-	//		//
-
-
-
-
-	//	}
-
-	//	//×ÝÏò Ò»²½ ÏûÊ§
-	//	//×ÝÏò Ò»²½ ÒÆ¶¯
-
-	//	//³ö±ø
 	}
 }
 
@@ -1438,123 +1635,270 @@ void GameScene::update(float dt){
 			monsterHeros[i] = nullptr;
 		}
 	}
-	bool heroIsDeath = false;
-	for (int i = 0; i < AllHeroCount; i++){ //±éÀúhero
-		auto hero = mHeros[i];
-		if (hero == nullptr){
+
+	for (int i = 0; i < AllHeroCount; i++){ //±éÀú
+		auto heroObj = mHeroes[i];
+		if (heroObj == nullptr){
 			continue;
 		}
-		if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hpÐ¡ÓÚ0
-			//ÒÆ³ýÁÐ±íÖÐµÄ¹¥»÷duixiang
-			for (auto preHeroes = prepareHeroes.begin(); preHeroes != prepareHeroes.end();preHeroes++){
-				for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
-					if ((*atkHero)->getId() == hero->getId()){
-						(*preHeroes).clear();
+		if (heroObj->getHeroHP() <= 0 || heroObj->getHeroATK() <= 0){//hpÐ¡ÓÚ0
+			heroObj->death();
+			heroObj = nullptr;
+			mHeroes[i] = nullptr;
+		}
+	}
+
+	bool heroIsDeath = false;
+
+	if (isAiRound){
+		for (int i = 0; i < AllHeroCount; i++){ //±éÀúmonster
+			auto hero = monsterHeros[i];
+			if (hero == nullptr){
+				continue;
+			}
+			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//monster hpÐ¡ÓÚ0
+				//ÒÆ³ýÁÐ±íÖÐµÄ¹¥»÷duixiang
+				for (auto preHeroes = prepareMonster.begin(); preHeroes != prepareMonster.end(); preHeroes++){
+					for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
+						if ((*atkHero)->getId() == hero->getId()){
+							(*preHeroes).clear();
+							break;
+						}
+					}
+					if ((*preHeroes).empty()){
+						prepareMonster.erase(preHeroes);
 						break;
 					}
 				}
-				if ((*preHeroes).empty()){
-					prepareHeroes.erase(preHeroes);
-					break;
-				}
+				isActionRuning = false;
+				existMonsterCount--;
+				updateHeroCount();
+				hero->death();
+				hero = nullptr;
+				monsterHeros[i] = nullptr;
+				heroIsDeath = true;
 			}
-			isActionRuning = false;
-			existHeroCount--;
-			updateHeroCount();
-			hero->death();
-			hero = nullptr;
-			mHeros[i] = nullptr;
-			heroIsDeath = true;
 		}
 	}
+	else{
+		for (int i = 0; i < AllHeroCount; i++){ //±éÀúhero
+			auto hero = mHeroes[i];
+			if (hero == nullptr){
+				continue;
+			}
+			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hpÐ¡ÓÚ0
+				//ÒÆ³ýÁÐ±íÖÐµÄ¹¥»÷duixiang
+				for (auto preHeroes = prepareHeroes.begin(); preHeroes != prepareHeroes.end(); preHeroes++){
+					for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
+						if ((*atkHero)->getId() == hero->getId()){
+							(*preHeroes).clear();
+							break;
+						}
+					}
+					if ((*preHeroes).empty()){
+						prepareHeroes.erase(preHeroes);
+						break;
+					}
+				}
+				isActionRuning = false;
+				existHeroCount--;
+				updateHeroCount();
+				hero->death();
+				hero = nullptr;
+				mHeroes[i] = nullptr;
+				heroIsDeath = true;
+			}
+		}
+	}
+	
 	//ÓÐËÀÍö
-	if (!isAiRound && heroIsDeath && !isActionRuning){
+	if ( heroIsDeath && !isActionRuning){
 		//ÒÆ¶¯Íêºó
 		stopActionByTag(HeroRunActionTag);
 		Action * action = Sequence::create(DelayTime::create(0.2f), CallFunc::create([=](){
-			runHeroPosition();
+			runHeroPosition(isAiRound ? monsterHeros : mHeroes);
 		}), NULL);
 		action->setTag(HeroRunActionTag);
 		runAction(action);
 	}
 
-	for (auto preHeroes : prepareHeroes){
-		for (auto atkHero : preHeroes){
-			if (atkHero->getHeroACT() > 0){
-				break;
-			}
-			isActionRuning = true;
-			for (int i = 0; i < AllHeroCount; i++){ //±éÀúµÐÈË
-				auto monsterObj = monsterHeros[i];
-				if (monsterObj == nullptr || atkHero == nullptr){
-					continue;
+	if (isAiRound){
+		//ÅÐ¶Ï¹ÖÎï
+		for (auto preHeroes : prepareMonster){
+			for (auto atkHero : preHeroes){
+				if (atkHero->getHeroACT() > 0){
+					break;
 				}
-				if (atkHero->collision(monsterObj)){//Èç¹ûÅö×²
-					if (preHeroes.size()>=1){//¿´¿´×¼±¸µÄ¶ÔÏóÖÐÊÇ·ñ´óÓÚÒ»¸ö
-						HeroObj * h1 = preHeroes.at(0);//»ñÈ¡Õâ¸öÖ÷ÒªµÄ¶ÔÏó Í¨¹ýËûµÄ¹¥»÷hp ¸Ä±äÆäËûµÄ¶ÔÏó
-						h1->attack([=](Node * node){
-							int hp = h1->getHeroATK() - monsterObj->getHeroHP() - monsterObj->getHeroDEF();//¹¥»÷-ÑªÁ¿ºÍ·ÀÓù
-							int monsHp = -hp;//¹ÖÎïÑªÁ¿Ïà·´
-							if (hp < 0){
-								hp = 0;
-							}
-							if (monsHp < 0){
-								monsHp = 0;
-							}
-							int atkHp = monsterObj->getHeroHP() - monsHp;
-							showCupBlood(atkHp, node->getPositionX(), node->getPositionY(), monsterObj->getIndexY());
-							//h1->setHeroHP(hp);
-							h1->setHeroATK(hp);
-							h1->updateATK();
-							monsterObj->setHeroHP(monsHp);
-							if (preHeroes.size() >= 2){//ÐÞ¸Ä´ÎÒªµÄ¶ÔÏó
+				isActionRuning = true;
+				for (int i = 0; i < AllHeroCount; i++){ //±éÀúµÐÈË
+					auto monsterObj = mHeroes[i];
+					if (monsterObj == nullptr || atkHero == nullptr){
+						continue;
+					}
+					if (atkHero->collision(monsterObj)){//Èç¹ûÅö×²
+						if (preHeroes.size() >= 1){//¿´¿´×¼±¸µÄ¶ÔÏóÖÐÊÇ·ñ´óÓÚÒ»¸ö
+							HeroObj * h1 = preHeroes.at(0);//»ñÈ¡Õâ¸öÖ÷ÒªµÄ¶ÔÏó Í¨¹ýËûµÄ¹¥»÷hp ¸Ä±äÆäËûµÄ¶ÔÏó
+							h1->attack([=](Node * node){
+								int hp = h1->getHeroATK() - monsterObj->getHeroHP() - monsterObj->getHeroDEF();//¹¥»÷-ÑªÁ¿ºÍ·ÀÓù
+								int monsHp = -hp;//¹ÖÎïÑªÁ¿Ïà·´
+								if (hp < 0){
+									hp = 0;
+								}
+								if (monsHp < 0){
+									monsHp = 0;
+								}
+								int atkHp = monsterObj->getHeroHP() - monsHp;
+								showCupBlood(atkHp, node->getPositionX(), node->getPositionY(), monsterObj->getIndexY());
+								//h1->setHeroHP(hp);
+								h1->setHeroATK(hp);
+								h1->updateATK();
+								monsterObj->setHeroHP(monsHp);
+								if (monsterObj->getActionType() == HeroActionType::Prepare){
+									HeroObj * hero1 = mHeroes[monsterObj->getId() + MAX_ROW];
+									HeroObj * hero2 = mHeroes[monsterObj->getId() + 2 * MAX_ROW];
+									hero1->setHeroHP(monsHp);
+									hero1->setHeroATK(monsHp);
+									hero2->setHeroHP(monsHp);
+									hero2->setHeroATK(monsHp);
+								}
+								if (preHeroes.size() >= 2){//ÐÞ¸Ä´ÎÒªµÄ¶ÔÏó
+									HeroObj * h2 = preHeroes.at(1);
+									//h2->setHeroHP(hp);
+									h2->setHeroATK(hp);
+									h2->updateATK();
+								}
+								if (preHeroes.size() >= 3){
+									HeroObj * h3 = preHeroes.at(2);
+									//h3->setHeroHP(hp);
+									h3->setHeroATK(hp);
+								}
+							}, [=](){
+								h1->attack([=](Node * node){
+									int hp = h1->getHeroATK() - monsterDEF;
+									//´òÇ½
+									h1->setHeroHP(0);
+									h1->setHeroATK(0);
+									monsterCurrentHP = monsterCurrentHP - hp;
+									showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
+									updateHPMP();
+								}, nullptr);
+							});
+							if (preHeroes.size() >= 2){//´ÎÒª¶ÔÏó¸úËæ¶¯×÷
 								HeroObj * h2 = preHeroes.at(1);
-								//h2->setHeroHP(hp);
-								h2->setHeroATK(hp);
-								h2->updateATK();
+								h2->attack(nullptr, [=](){
+									h2->attack([=](Node * node){
+										//´òÇ½
+										h2->setHeroHP(0);
+										h2->setHeroATK(0);
+									}, nullptr);
+								});
 							}
 							if (preHeroes.size() >= 3){
 								HeroObj * h3 = preHeroes.at(2);
-								//h3->setHeroHP(hp);
-								h3->setHeroATK(hp);
+								h3->attack(nullptr, [=](){
+									h3->attack([=](Node * node){
+										//´òÇ½
+										h3->setHeroHP(0);
+										h3->setHeroATK(0);
+									}, nullptr);
+								});
 							}
-						}, [=](){
-							h1->attack( [=](Node * node){
-								int hp = h1->getHeroATK() - monsterDEF;
-								//´òÇ½
-								h1->setHeroHP(0);
-								h1->setHeroATK(0);
-								monsterCurrentHP = monsterCurrentHP - hp;
-								showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
-								updateHPMP();
-							}, nullptr);
-						});
-						if (preHeroes.size() >= 2){//´ÎÒª¶ÔÏó¸úËæ¶¯×÷
-							HeroObj * h2 = preHeroes.at(1);
-							h2->attack(nullptr, [=](){
-								h2->attack([=](Node * node){
-									//´òÇ½
-									h2->setHeroHP(0);
-									h2->setHeroATK(0);
-								}, nullptr);
-							});
-						}
-						if (preHeroes.size() >= 3){
-							HeroObj * h3 = preHeroes.at(2);
-							h3->attack(nullptr, [=](){
-								h3->attack([=](Node * node){
-									//´òÇ½
-									h3->setHeroHP(0);
-									h3->setHeroATK(0);
-								}, nullptr);
-							});
 						}
 					}
 				}
 			}
 		}
 	}
-	//ÅÐ¶Ï¹ÖÎï
+	else{
+		for (auto preHeroes : prepareHeroes){
+			for (auto atkHero : preHeroes){
+				if (atkHero->getHeroACT() > 0){
+					break;
+				}
+				isActionRuning = true;
+				for (int i = 0; i < AllHeroCount; i++){ //±éÀúµÐÈË
+					auto monsterObj = monsterHeros[i];
+					if (monsterObj == nullptr || atkHero == nullptr){
+						continue;
+					}
+					log("%d ===== ++++++ " , atkHero->getHeroHP());
+					if (atkHero->collision(monsterObj)){//Èç¹ûÅö×²
+						if (preHeroes.size() >= 1){//¿´¿´×¼±¸µÄ¶ÔÏóÖÐÊÇ·ñ´óÓÚÒ»¸ö
+							HeroObj * h1 = preHeroes.at(0);//»ñÈ¡Õâ¸öÖ÷ÒªµÄ¶ÔÏó Í¨¹ýËûµÄ¹¥»÷hp ¸Ä±äÆäËûµÄ¶ÔÏó
+							h1->attack([=](Node * node){
+								int hp = h1->getHeroATK() - monsterObj->getHeroHP() - monsterObj->getHeroDEF();//¹¥»÷-ÑªÁ¿ºÍ·ÀÓù
+								int monsHp = -hp;//¹ÖÎïÑªÁ¿Ïà·´
+								if (hp < 0){
+									hp = 0;
+								}
+								if (monsHp < 0){
+									monsHp = 0;
+								}
+								int atkHp = monsterObj->getHeroHP() - monsHp;
+								showCupBlood(atkHp, node->getPositionX(), node->getPositionY(), monsterObj->getIndexY());
+								//h1->setHeroHP(hp);
+								h1->setHeroATK(hp);
+								h1->updateATK();
+								monsterObj->setHeroHP(monsHp);
+
+								if (monsterObj->getActionType() == HeroActionType::Prepare){
+									HeroObj * hero1 = monsterHeros[monsterObj->getId() + MAX_ROW];
+									HeroObj * hero2 = monsterHeros[monsterObj->getId() + 2 * MAX_ROW];
+									hero1->setHeroHP(monsHp);
+									hero1->setHeroATK(monsHp);
+									hero2->setHeroHP(monsHp);
+									hero2->setHeroATK(monsHp);
+								}
+
+								if (preHeroes.size() >= 2){//ÐÞ¸Ä´ÎÒªµÄ¶ÔÏó
+									HeroObj * h2 = preHeroes.at(1);
+									//h2->setHeroHP(hp);
+									h2->setHeroATK(hp);
+									h2->updateATK();
+								}
+								if (preHeroes.size() >= 3){
+									HeroObj * h3 = preHeroes.at(2);
+									//h3->setHeroHP(hp);
+									h3->setHeroATK(hp);
+								}
+							}, [=](){
+								h1->attack([=](Node * node){
+									int hp = h1->getHeroATK() - monsterDEF;
+									//´òÇ½
+									h1->setHeroHP(0);
+									h1->setHeroATK(0);
+									monsterCurrentHP = monsterCurrentHP - hp;
+									showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
+									updateHPMP();
+								}, nullptr);
+							});
+							if (preHeroes.size() >= 2){//´ÎÒª¶ÔÏó¸úËæ¶¯×÷
+								HeroObj * h2 = preHeroes.at(1);
+								h2->attack(nullptr, [=](){
+									h2->attack([=](Node * node){
+										//´òÇ½
+										h2->setHeroHP(0);
+										h2->setHeroATK(0);
+									}, nullptr);
+								});
+							}
+							if (preHeroes.size() >= 3){
+								HeroObj * h3 = preHeroes.at(2);
+								h3->attack(nullptr, [=](){
+									h3->attack([=](Node * node){
+										//´òÇ½
+										h3->setHeroHP(0);
+										h3->setHeroATK(0);
+									}, nullptr);
+								});
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	
 }
 
@@ -1563,7 +1907,7 @@ void GameScene::heroCountLCallBack(Ref * ref){
 		heroEntry();
 		stopActionByTag(HeroEnterActionTag);
 		Action * action = Sequence::create(DelayTime::create(2), CallFunc::create([=](){
-			mHeroPrepareAndDef(true,mHeros);
+			mHeroPrepareAndDef(true,mHeroes);
 			if (mActCount == 0){
 				//ÒÆ¶¯Íêºó
 				actRoundChage();
@@ -1577,7 +1921,7 @@ void GameScene::heroCountLCallBack(Ref * ref){
 	}
 }
 
-void GameScene::runHeroPosition(){
+void GameScene::runHeroPosition(HeroObj * mHeros[]){
 	for (int i = 0; i < MAX_ROW; i++){//Õý×ÅÀ´°É
 		for (int j = 1; j < MAX_COLUMN; j++){
 			int index = j * MAX_ROW + i;
@@ -1588,7 +1932,7 @@ void GameScene::runHeroPosition(){
 						int posIndex = k * MAX_ROW + i;
 						int lastPosIndex = (k - 1)* MAX_ROW + i;
 						if (mHeros[lastPosIndex] == nullptr){
-							swapHeroPosition(mHeros[posIndex], nullptr);
+							swapHeroPosition(mHeros[posIndex], nullptr,mHeros);
 						}
 					}
 				}
@@ -1598,8 +1942,6 @@ void GameScene::runHeroPosition(){
 }
 
 void GameScene::showCupBlood(int cupBlood,int posX,int posY,int zOder){
-	
-	
 	std::string atkStr = String::createWithFormat("%d", cupBlood)->getCString();
 	TextAtlas * atkAtlas = TextAtlas::create(atkStr, "atk_hp_num.png", 30, 35, ".");
 	atkAtlas->setAnchorPoint(Vec2(0.5, 0.5));
