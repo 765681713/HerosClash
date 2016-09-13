@@ -204,7 +204,9 @@ void GameScene::updateUi(){
 		runHeroPosition(isAiRound ? monsterHeros:mHeroes);
 	}
 	if (isAiRound){
-		schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
+		this->runAction(Sequence::create(DelayTime::create(2), CallFunc::create([this](){
+			this->schedule(schedule_selector(GameScene::aiSchedule), 1.0f);
+		}), NULL));
 	}
 	else{
 		unschedule(schedule_selector(GameScene::aiSchedule));
@@ -303,10 +305,20 @@ void GameScene::updateHeroAct(){
 						heroObj->attack([=](Node * node){
 							//打墙
 							if (i == 0){
-								int hp = heroObj->getHeroATK() - monsterDEF;
-								monsterCurrentHP = monsterCurrentHP - hp;
-								showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), heroObj->getIndexY());
+								int hp = 0;
+								//打墙
+								if (heroObj->getIsMonster()){
+									hp = heroObj->getHeroATK() - mDEF;
+									mCurrentHP = mCurrentHP - hp;
+									showCupBlood(hp, 0 + heroW, node->getPositionY(), heroObj->getIndexY());
+								}
+								else{
+									hp = heroObj->getHeroATK() - monsterDEF;
+									monsterCurrentHP = monsterCurrentHP - hp;
+									showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), heroObj->getIndexY());
+								}
 								updateHPMP();
+								isActionRuning = false;
 							}
 							heroObj->setHeroHP(0);
 							heroObj->setHeroATK(0);
@@ -1182,6 +1194,19 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 								}
 							}), NULL));
 						}
+						for (auto hes = heroes.begin(); hes != heroes.end(); hes++){
+							(*hHeroes).erase(hes);
+						}
+						heroes.clear(); //删除
+						for (int l = 1; i <= 3; i++){//攻击加倍
+							int hId = heroes[0]->getId() - i * MAX_ROW;
+							HeroObj * hObj = mHeros[hId];
+							hObj->setHeroATK(hObj->getHeroATK() * 2);
+							hObj->setHeroHP(hObj->getHeroHP() * 2);
+							hObj->setHeroAdd(hObj->getHeroAdd() * 2);
+							hObj->updateATK();
+						}
+						break;
 					}
 					else if (obj != nullptr && obj->getActionType() == HeroActionType::Prepare){ //pre
 						break;
@@ -1191,6 +1216,9 @@ void GameScene::mHeroPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroe
 							swapHeroPosition(heroes[n], obj,mHeros);
 						}
 					}
+				}
+				if (heroes.empty()){
+					continue;
 				}
 				if ((*hHeroes).at(i)->getIsMonster()){
 					prepareMonster.push_back(heroes);
@@ -1562,12 +1590,120 @@ void GameScene::aiSchedule(float delay){
 		}
 
 		//横向 两步 消失
-		for (int i = 0; i < MAX_COLUMN; i++){
+		for (int i = 0; i < MAX_ROW; i++){
 			//
-
-
-
-
+			int standCount = 0;
+			for (int j = 0; j < MAX_COLUMN; j++){
+				int index = j * MAX_ROW + i;
+				if (monsterHeros[index] == nullptr){
+					break;
+				}
+				if (monsterHeros[index]->getActionType() == HeroActionType::Stand){
+					standCount++;
+				}
+				else{
+					standCount = 0;
+				}
+				//mSelectObj
+				if (standCount >= 5){
+					mSelectObj = monsterHeros[(j - 4)* MAX_ROW + i];
+					int lastIndex = (j - 3)* MAX_ROW + i;
+					int lastLastIndex = (j - 2)* MAX_ROW + i;
+					int lastLastLastIndex = (j - 1)* MAX_ROW + i;
+					int lastLastLastLastIndex = j* MAX_ROW + i;
+					int mCurrrntId = mSelectObj->getHero()->getId();
+					if (mCurrrntId == monsterHeros[lastIndex]->getHero()->getId()
+						&& mCurrrntId == monsterHeros[lastLastLastLastIndex]->getHero()->getId()){
+						// 1 1 0 0 1
+						gameSceneLayout->removeChild(monsterHeros[lastLastIndex]->getMCurrentNode(), true);
+						monsterHeros[lastLastIndex] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = j; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + i] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + i];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+								monsterHeros[k * MAX_ROW + i] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						//判断 准备和防御
+						mHeroPrepareAndDef(true, monsterHeros);
+						isActionRuning = true;
+						isWalk = true;
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}), NULL));
+						break;
+					}
+					else if (mCurrrntId == monsterHeros[lastLastLastLastIndex]->getHero()->getId()
+						&& mCurrrntId == monsterHeros[lastLastLastIndex]->getHero()->getId()){
+						// 1 0 0 1 1 
+						gameSceneLayout->removeChild(monsterHeros[lastIndex]->getMCurrentNode(), true);
+						monsterHeros[lastIndex] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = j - 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + i] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + i];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+								monsterHeros[k * MAX_ROW + i] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						//判断 准备和防御
+						mHeroPrepareAndDef(true, monsterHeros);
+						isActionRuning = true;
+						isWalk = true;
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}), NULL));
+						break;
+					}
+					else if (mCurrrntId == monsterHeros[lastLastLastLastIndex]->getHero()->getId()
+						&& mCurrrntId == monsterHeros[lastLastIndex]->getHero()->getId()){
+						// 1 0 1 0 1 
+						gameSceneLayout->removeChild(monsterHeros[lastIndex]->getMCurrentNode(), true);
+						monsterHeros[lastIndex] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = j - 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + i] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + i];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + i] = mHero;
+								monsterHeros[k * MAX_ROW + i] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						//判断 准备和防御
+						mHeroPrepareAndDef(true, monsterHeros);
+						isActionRuning = true;
+						isWalk = true;
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}), NULL));
+						break;
+					}
+				}
+			}
+			if (isWalk){
+				break;
+			}
 		}
 
 		if (isWalk){
@@ -1576,15 +1712,276 @@ void GameScene::aiSchedule(float delay){
 
 		//横向 两步 移动
 		for (int i = 0; i < MAX_COLUMN; i++){
-			//
-
-
-
-
+			for (int j = MAX_COLUMN - 1; j > 1; j--){
+				int index = j * MAX_ROW + i;
+				if (monsterHeros[index] == nullptr){
+					continue;
+				}
+				if (monsterHeros[index]->getActionType() != HeroActionType::Stand){
+					break;
+				}
+				if (monsterHeros[index - MAX_ROW]->getHero()->getId() == monsterHeros[index - 2 * MAX_ROW]->getHero()->getId()){
+					int moveX = 0;
+					int moveY = 0;
+					//移走
+					bool isCan = false;
+					for (int k = 0; k < MAX_COLUMN; k++){
+						for (int l = MAX_COLUMN - 1; l >= 0; l--){
+							int index2 = l * MAX_ROW + k;
+							if (l == 0){
+								if (monsterHeros[index2] == nullptr){
+									moveX = l;
+									moveY = k;
+									isCan = true;
+									break;
+								}
+							}
+							else{
+								if (monsterHeros[index2] == nullptr && monsterHeros[index2 - MAX_ROW] != nullptr &&
+									monsterHeros[index2 - MAX_ROW]->getHero()->getId() != monsterHeros[index - MAX_ROW]->getHero()->getId()){
+									moveX = l;
+									moveY = k;
+									isCan = true;
+									break;
+								}
+							}
+						}
+						if (isCan){
+							break;
+						}
+					}
+					if (isCan){
+						isActionRuning = true;
+						HeroObj * mCurrentHero = monsterHeros[index];
+						mCurrentHero->getMCurrentNode()->runAction(Sequence::create(FadeTo::create(0.2f, 125), DelayTime::create(0.3f),
+							MoveTo::create(0.1f *(MAX_COLUMN - mCurrentHero->getIndexX()), Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())),
+							CallFunc::create([=](){
+							monsterHeros[mCurrentHero->getId()] = nullptr;
+							mCurrentHero->setIndexX(moveX);
+							mCurrentHero->setIndexY(moveY);
+							mCurrentHero->updateNode();
+							monsterHeros[mCurrentHero->getId()] = mCurrentHero;
+						}),
+							MoveTo::create(0, Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())), MoveTo::create(0.1f * (MAX_COLUMN - moveX),
+							Vec2(mCurrentHero->getpositionX(), mCurrentHero->getpositionY())), FadeTo::create(0.2f, 255),
+							CallFunc::create([=](){
+							//判断 准备和防御
+							mHeroPrepareAndDef(true, monsterHeros);
+							this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+								isActionRuning = false;
+							}), NULL));
+						}), NULL));
+					}
+				}
+				else{
+					break;
+				}
+			}
+			if (isWalk){
+				break;
+			}
 		}
 
-		//纵向 一步 消失
+		if (isWalk){
+			return;
+		}
+
+		//纵向 一步 消失 // 上到下查找
+		for (int i = 0; i < MAX_COLUMN - 1; i++){
+			for (int j = 0; j < MAX_ROW - 2; j++){
+				int index = i * MAX_ROW + j;
+				if (monsterHeros[index] == nullptr){
+					continue;
+				}
+				if (monsterHeros[index]->getActionType() != HeroActionType::Stand){
+					continue;
+				}
+				int next = index + MAX_ROW;
+				int last = index + 1;
+				int lastLast = index + 2;
+				int nextLast = index + MAX_ROW + 1;
+				int nextLastLast = index + MAX_ROW + 2;
+				if (monsterHeros[last] != nullptr && monsterHeros[nextLastLast] != nullptr){
+					if (monsterHeros[last]->getActionType() != HeroActionType::Stand ||
+						monsterHeros[lastLast]->getActionType() != HeroActionType::Stand){
+						continue;
+					}
+					if (monsterHeros[index]->getHero()->getId() == monsterHeros[last]->getHero()->getId()
+						&& monsterHeros[index]->getHero()->getId() == monsterHeros[nextLastLast]->getHero()->getId()){
+						gameSceneLayout->removeChild(monsterHeros[lastLast]->getMCurrentNode(), true);
+						monsterHeros[lastLast] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = i + 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + j + 2] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + j + 2];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + j + 2] = mHero;
+								monsterHeros[k * MAX_ROW + j + 2] = nullptr;
+							}
+							else{
+
+								break;
+							}
+						}
+						this->runAction(Sequence::create(DelayTime::create(0.1f), CallFunc::create([=](){
+							//判断 准备和防御
+							mHeroPrepareAndDef(true, monsterHeros);
+							isActionRuning = true;
+							this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+								isActionRuning = false;
+							}), NULL));
+						}), NULL));
+						isWalk = true;
+						break;
+					}
+				}
+				
+				if (monsterHeros[nextLast] != nullptr && monsterHeros[lastLast] != nullptr){
+					if (monsterHeros[nextLast]->getActionType() != HeroActionType::Stand ||
+						monsterHeros[lastLast]->getActionType() != HeroActionType::Stand){
+						continue;
+					}
+					if (monsterHeros[index]->getHero()->getId() == monsterHeros[nextLast]->getHero()->getId()
+						&& monsterHeros[index]->getHero()->getId() == monsterHeros[lastLast]->getHero()->getId()){
+						gameSceneLayout->removeChild(monsterHeros[last]->getMCurrentNode(), true);
+						monsterHeros[last] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+
+						for (int k = i + 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + j + 1] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + j + 1];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + j + 1] = mHero;
+								monsterHeros[k * MAX_ROW + j + 1] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						this->runAction(Sequence::create(DelayTime::create(0.1f), CallFunc::create([=](){
+							//判断 准备和防御
+							mHeroPrepareAndDef(true, monsterHeros);
+							isActionRuning = true;
+							this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+								isActionRuning = false;
+							}), NULL));
+						}), NULL));
+						isWalk = true;
+						break;
+					}
+				}
+				
+				if (monsterHeros[next] != nullptr && monsterHeros[lastLast] != nullptr
+					&& monsterHeros[last] != nullptr){
+					if (monsterHeros[next]->getActionType() != HeroActionType::Stand ||
+						monsterHeros[lastLast]->getActionType() != HeroActionType::Stand ||
+						monsterHeros[last]->getActionType() != HeroActionType::Stand){
+						continue;
+					}
+					if (monsterHeros[next]->getHero()->getId() == monsterHeros[last]->getHero()->getId()
+						&& monsterHeros[next]->getHero()->getId() == monsterHeros[lastLast]->getHero()->getId()){
+						gameSceneLayout->removeChild(monsterHeros[index]->getMCurrentNode(), true);
+						monsterHeros[index] = nullptr;
+						existMonsterCount--;
+						updateHeroCount();
+						for (int k = i + 1; k < MAX_COLUMN; k++){
+							if (monsterHeros[k * MAX_ROW + j] != nullptr){
+								HeroObj * mHero = monsterHeros[k * MAX_ROW + j];
+								mHero->setIndexX(k - 1);
+								mHero->updateNode();
+								mHero->getMCurrentNode()->runAction(MoveTo::create(0.1f, Vec2(mHero->getpositionX(), mHero->getpositionY())));
+								monsterHeros[(k - 1) * MAX_ROW + j] = mHero;
+								monsterHeros[k * MAX_ROW + j] = nullptr;
+							}
+							else{
+								break;
+							}
+						}
+						this->runAction(Sequence::create(DelayTime::create(0.1f), CallFunc::create([=](){
+							//判断 准备和防御
+							mHeroPrepareAndDef(true, monsterHeros);
+							isActionRuning = true;
+							this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+								isActionRuning = false;
+							}), NULL));
+						}), NULL));
+						isWalk = true;
+						break;
+					}
+				}
+			}
+			if (isWalk){
+				break;
+			}
+		}				
+
+		if (isWalk){
+			return;
+		}
+
 		//纵向 一步 移动
+		for (int i = 0; i < MAX_COLUMN ; i++){
+			for (int j = 0; j < MAX_ROW - 2; j++){
+				int index = i * MAX_ROW + j;
+				if (monsterHeros[index] == nullptr){
+					int lastLast = index - 2;
+					int last = index - 1;
+					int nextNext = index + 2;
+					int next = index + 1;
+					if (j == 0){
+						isWalk = defNext(i, j, index, next, nextNext);
+					}
+					else if(j == 1){
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, next);
+						}
+						if (!isWalk){
+							isWalk = defNext(i, j, index, next, nextNext);
+						}
+					}
+					else if (j == MAX_ROW - 2){
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, next);
+						}
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, lastLast);
+						}
+					}
+					else if (j == MAX_ROW - 1){
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, lastLast);
+						}
+					}
+					else{
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, lastLast);
+						}
+						if (!isWalk){
+							isWalk = defNext(i, j, index, last, next);
+						}
+						if (!isWalk){
+							isWalk = defNext(i, j, index, next, nextNext);
+						}
+					}
+				}
+				if (isWalk){
+					break;
+				}
+			}
+			if (isWalk){
+				break;
+			}
+		}
+
+		if (isWalk){
+			return;
+		}
 
 		//出兵
 		if (monstersAI->getHeroesCount() - existMonsterCount >= 1){
@@ -1611,6 +2008,56 @@ void GameScene::aiSchedule(float delay){
 	}
 }
 
+bool GameScene::defNext(int x, int y, int index, int next, int nextNext){
+	if (index >= MAX_ROW && monsterHeros[index - MAX_ROW] == nullptr){
+		return false;
+	}
+	if (monsterHeros[next] == nullptr || monsterHeros[nextNext] == nullptr){
+		return false;
+	}
+	if (monsterHeros[next]->getActionType() != HeroActionType::Stand ||
+		monsterHeros[nextNext]->getActionType() != HeroActionType::Stand){
+		return false;
+	}
+	if (monsterHeros[next]->getHero()->getId() != monsterHeros[nextNext]->getHero()->getId()){
+		return false;
+	}
+
+	for (int m = 0; m < MAX_ROW; m++){
+		for (int n = MAX_COLUMN - 1; n > 0; n--){
+			int item = n * MAX_ROW + m;
+			if (monsterHeros[item] != nullptr && monsterHeros[item]->getActionType() == HeroActionType::Stand){
+				if (monsterHeros[item]->getHero()->getId() == monsterHeros[next]->getHero()->getId()
+					&& monsterHeros[item]->getId() != monsterHeros[next]->getId() &&
+					monsterHeros[item]->getId() != monsterHeros[nextNext]->getId()){
+					isActionRuning = true;
+					HeroObj * mCurrentMonster = monsterHeros[item];
+					mCurrentMonster->getMCurrentNode()->runAction(Sequence::create(FadeTo::create(0.2f, 125), DelayTime::create(0.3f),
+						MoveTo::create(0.1f *(MAX_COLUMN - mCurrentMonster->getIndexX()), Vec2(mSceneSize.width + 60, mCurrentMonster->getpositionY())),
+						CallFunc::create([=](){
+						monsterHeros[mCurrentMonster->getId()] = nullptr;
+						mCurrentMonster->setIndexX(x);
+						mCurrentMonster->setIndexY(y);
+						mCurrentMonster->updateNode();
+						monsterHeros[index] = mCurrentMonster;
+					}),
+						MoveTo::create(0, Vec2(mSceneSize.width + 60, monsterHeros[index]->getpositionY())), MoveTo::create(0.1f * (MAX_COLUMN - x),
+						Vec2(monsterHeros[index]->getpositionX(), monsterHeros[index]->getpositionY())), FadeTo::create(0.2f, 255),
+						CallFunc::create([=](){
+						//判断 准备和防御
+						mHeroPrepareAndDef(true, monsterHeros);
+						this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+							isActionRuning = false;
+						}), NULL));
+					}), NULL));
+					return true;
+				}
+				break;
+			}
+		}
+	}
+}
+
 void GameScene::timeSchedule(float delay){
 	if (!isRoundChangeing){
 		secCurrentTime--;
@@ -1623,6 +2070,64 @@ void GameScene::timeSchedule(float delay){
 }
 
 void GameScene::update(float dt){
+
+	bool heroIsDeath = false;
+	for (int i = 0; i < AllHeroCount; i++){ //遍历monster
+		auto hero = monsterHeros[i];
+		if (hero == nullptr){
+			continue;
+		}
+		if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//monster hp小于0
+			//移除列表中的攻击duixiang
+			for (auto preHeroes = prepareMonster.begin(); preHeroes != prepareMonster.end(); preHeroes++){
+				for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
+					if ((*atkHero)->getId() == hero->getId()){
+						(*preHeroes).clear();
+						break;
+					}
+				}
+				if ((*preHeroes).empty()){
+					prepareMonster.erase(preHeroes);
+					break;
+				}
+			}
+			isActionRuning = false;
+			existMonsterCount--;
+			updateHeroCount();
+			hero->death();
+			hero = nullptr;
+			monsterHeros[i] = nullptr;
+			heroIsDeath = true;
+		}
+	}
+	for (int i = 0; i < AllHeroCount; i++){ //遍历hero
+		auto hero = mHeroes[i];
+		if (hero == nullptr){
+			continue;
+		}
+		if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hp小于0
+			//移除列表中的攻击duixiang
+			for (auto preHeroes = prepareHeroes.begin(); preHeroes != prepareHeroes.end(); preHeroes++){
+				for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
+					if ((*atkHero)->getId() == hero->getId()){
+						(*preHeroes).clear();
+						break;
+					}
+				}
+				if ((*preHeroes).empty()){
+					prepareHeroes.erase(preHeroes);
+					break;
+				}
+			}
+			isActionRuning = false;
+			existHeroCount--;
+			updateHeroCount();
+			hero->death();
+			hero = nullptr;
+			mHeroes[i] = nullptr;
+			heroIsDeath = true;
+		}
+	}
 
 	for (int i = 0; i < AllHeroCount; i++){ //遍历敌人
 		auto monsterObj = monsterHeros[i];
@@ -1647,76 +2152,15 @@ void GameScene::update(float dt){
 			mHeroes[i] = nullptr;
 		}
 	}
-
-	bool heroIsDeath = false;
-
-	if (isAiRound){
-		for (int i = 0; i < AllHeroCount; i++){ //遍历monster
-			auto hero = monsterHeros[i];
-			if (hero == nullptr){
-				continue;
-			}
-			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//monster hp小于0
-				//移除列表中的攻击duixiang
-				for (auto preHeroes = prepareMonster.begin(); preHeroes != prepareMonster.end(); preHeroes++){
-					for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
-						if ((*atkHero)->getId() == hero->getId()){
-							(*preHeroes).clear();
-							break;
-						}
-					}
-					if ((*preHeroes).empty()){
-						prepareMonster.erase(preHeroes);
-						break;
-					}
-				}
-				isActionRuning = false;
-				existMonsterCount--;
-				updateHeroCount();
-				hero->death();
-				hero = nullptr;
-				monsterHeros[i] = nullptr;
-				heroIsDeath = true;
-			}
-		}
-	}
-	else{
-		for (int i = 0; i < AllHeroCount; i++){ //遍历hero
-			auto hero = mHeroes[i];
-			if (hero == nullptr){
-				continue;
-			}
-			if (hero->getHeroHP() <= 0 || hero->getHeroATK() <= 0){//hero hp小于0
-				//移除列表中的攻击duixiang
-				for (auto preHeroes = prepareHeroes.begin(); preHeroes != prepareHeroes.end(); preHeroes++){
-					for (auto atkHero = (*preHeroes).begin(); atkHero != (*preHeroes).end(); atkHero++){
-						if ((*atkHero)->getId() == hero->getId()){
-							(*preHeroes).clear();
-							break;
-						}
-					}
-					if ((*preHeroes).empty()){
-						prepareHeroes.erase(preHeroes);
-						break;
-					}
-				}
-				isActionRuning = false;
-				existHeroCount--;
-				updateHeroCount();
-				hero->death();
-				hero = nullptr;
-				mHeroes[i] = nullptr;
-				heroIsDeath = true;
-			}
-		}
-	}
 	
 	//有死亡
 	if ( heroIsDeath && !isActionRuning){
+		isActionRuning = true;
 		//移动完后
 		stopActionByTag(HeroRunActionTag);
 		Action * action = Sequence::create(DelayTime::create(0.2f), CallFunc::create([=](){
 			runHeroPosition(isAiRound ? monsterHeros : mHeroes);
+			isActionRuning = false;
 		}), NULL);
 		action->setTag(HeroRunActionTag);
 		runAction(action);
@@ -1743,6 +2187,7 @@ void GameScene::update(float dt){
 								int monsHp = -hp;//怪物血量相反
 								if (hp < 0){
 									hp = 0;
+									isActionRuning = false;
 								}
 								if (monsHp < 0){
 									monsHp = 0;
@@ -1758,8 +2203,10 @@ void GameScene::update(float dt){
 									HeroObj * hero2 = mHeroes[monsterObj->getId() + 2 * MAX_ROW];
 									hero1->setHeroHP(monsHp);
 									hero1->setHeroATK(monsHp);
+									hero1->updateATK();
 									hero2->setHeroHP(monsHp);
 									hero2->setHeroATK(monsHp);
+									hero2->updateATK();
 								}
 								if (preHeroes.size() >= 2){//修改次要的对象
 									HeroObj * h2 = preHeroes.at(1);
@@ -1774,13 +2221,22 @@ void GameScene::update(float dt){
 								}
 							}, [=](){
 								h1->attack([=](Node * node){
-									int hp = h1->getHeroATK() - monsterDEF;
+									int hp = 0;
 									//打墙
+									if (h1->getIsMonster()){
+										hp = h1->getHeroATK() - mDEF;
+										mCurrentHP = mCurrentHP - hp;
+										showCupBlood(hp, 0 + heroW, node->getPositionY(), h1->getIndexY());
+									}
+									else{
+										hp = h1->getHeroATK() - monsterDEF;
+										monsterCurrentHP = monsterCurrentHP - hp;
+										showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
+									}
 									h1->setHeroHP(0);
 									h1->setHeroATK(0);
-									monsterCurrentHP = monsterCurrentHP - hp;
-									showCupBlood(hp, mSceneSize.width - heroW, node->getPositionY(), h1->getIndexY());
 									updateHPMP();
+									isActionRuning = false;
 								}, nullptr);
 							});
 							if (preHeroes.size() >= 2){//次要对象跟随动作
@@ -1821,7 +2277,6 @@ void GameScene::update(float dt){
 					if (monsterObj == nullptr || atkHero == nullptr){
 						continue;
 					}
-					log("%d ===== ++++++ " , atkHero->getHeroHP());
 					if (atkHero->collision(monsterObj)){//如果碰撞
 						if (preHeroes.size() >= 1){//看看准备的对象中是否大于一个
 							HeroObj * h1 = preHeroes.at(0);//获取这个主要的对象 通过他的攻击hp 改变其他的对象
@@ -1963,6 +2418,8 @@ void GameScene::showCupBlood(int cupBlood,int posX,int posY,int zOder){
 
 void GameScene::onExit(){
 	Layer::onExit();
+	unschedule(schedule_selector(GameScene::aiSchedule));
+	unscheduleUpdate();
 	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("HeroMuBei.plist");
 	int index = 0;
 	for (auto heros = baseHeroes.begin(); heros != baseHeroes.end(); heros++){
@@ -1978,6 +2435,4 @@ void GameScene::onExit(){
 		std::string heroesFileName = String::createWithFormat("%s.plist", (*monster)->getName().c_str())->getCString();
 		SpriteFrameCache::getInstance()->removeSpriteFramesFromFile(heroesFileName);
 	}
-	unschedule(schedule_selector(GameScene::aiSchedule));
-	unscheduleUpdate();
 }

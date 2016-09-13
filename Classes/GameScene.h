@@ -50,7 +50,6 @@ public:
 	void showCupBlood(int cupBlood, int posX, int posY, int zOder);
 	void actRoundChage();
 	void gameWin(bool isMy);
-
 	/*void monsterPrepareAndDef(bool isClick, HeroObj * mHeros[]);
 	void monsterPrepareAction(std::vector<std::vector<HeroObj *>> allHHeroes);
 	void monsterDefAction(std::vector<std::vector<HeroObj *>> allVHeroes);
@@ -66,6 +65,8 @@ public:
 	void aiSchedule(float delay);
 	void timeSchedule(float delay);
 	virtual void update(float dt);
+	//def
+	bool defNext(int x, int y, int index,int next, int nextNext);
 
 	virtual void onExit();
 private:

@@ -53,6 +53,8 @@ public:
 	int getHeroHP();
 	int getHeroDEF();
 	int getHeroATK();
+	int getHeroAdd();
+	void setHeroAdd(int add);
 	void setHeroHP(int hp);
 	void setHeroATK(int atk);
 	void setHero(BaseHeroes * h);

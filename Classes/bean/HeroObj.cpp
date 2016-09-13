@@ -62,8 +62,16 @@ int HeroObj::getHeroATK(){
 	return mCurrentATK;
 }
 
+int HeroObj::getHeroAdd(){
+	return mCurrentADD;
+}
+void HeroObj::setHeroAdd(int add){
+	mCurrentADD = add;
+}
+
 void HeroObj::setHero(BaseHeroes * h){
 	this->hero = h;
+	hero->retain();
 	mCurrentHP = h->getHP();
 	mCurrentATK = h->getSAtk() + h->getPAtk();
 	mCurrentDEF = h->getSDef() + h->getPDef();
@@ -281,8 +289,13 @@ void HeroObj::updateATK(){
 		std::string atk = String::createWithFormat("%d", mCurrentATK)->getCString();
 		atkAtlas->setString(atk);
 		ProgressTimer * atkPro = static_cast<ProgressTimer *>(mCurrentNode->getChildByTag(300));
-		int hp = mCurrentATK * 100 / mCurrentHP;
-		atkPro->setPercentage(hp);
+		if (mCurrentHP == 0){
+			atkPro->setPercentage(0);
+		}
+		else{
+			int hp = mCurrentATK * 100 / mCurrentHP;
+			atkPro->setPercentage(hp);
+		}
 	}
 }
 
@@ -300,11 +313,15 @@ void HeroObj::atkEnemy(std::function<void()> hitWall){
 		break;
 	}
 	case HeroAtkType::FaShi:{
-
 		std::string wuQiName = String::createWithFormat("%s.csb", hero->getAtkEffect().c_str())->getCString();
 		mWuQi = CSLoader::createNode(wuQiName.c_str());
 		mWuQi->setPosition(positionX + heroW/2, positionY);
-		mWuQi->setRotation(-90);
+		if (isMonster){
+			mWuQi->setRotation(90);
+		}
+		else{
+			mWuQi->setRotation(-90);
+		}
 		mWuQi->setVisible(false);
 		mCurrentLayout->addChild(mWuQi, indexY, 100 + id);
 		//出场动画
@@ -325,7 +342,12 @@ void HeroObj::atkEnemy(std::function<void()> hitWall){
 		std::string wuQiName = String::createWithFormat("%s.csb", hero->getAtkEffect().c_str())->getCString();
 		mWuQi = CSLoader::createNode(wuQiName.c_str());
 		mWuQi->setPosition(positionX+ heroW/2, positionY);
-		mWuQi->setRotation(-90);
+		if (isMonster){
+			mWuQi->setRotation(90);
+		}
+		else{
+			mWuQi->setRotation(-90);
+		}
 		mWuQi->setVisible(false);
 		mCurrentLayout->addChild(mWuQi, indexY, 100 + id);
 		//出场动画
@@ -358,28 +380,56 @@ bool HeroObj::collision(HeroObj * target){
 	}
 	switch (hero->getAtkType()){
 	case HeroAtkType::ZhanShi:{
-		if (mWuQi->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2
-			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
-			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
-			return true;
+		if (isMonster){
+			if (mWuQi->getPosition().x - heroW / 2 < target->getMCurrentNode()->getPosition().x + heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				return true;
+			}
+		}
+		else{
+			if (mWuQi->getPosition().x + heroW / 2 > target->getMCurrentNode()->getPosition().x - heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				return true;
+			}
 		}
 		return false;
 		break;
 	}
 	case HeroAtkType::FaShi:{
-		if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
-			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
-			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
-			return true;
+		if (isMonster){
+			if (mWuQi->getPosition().x  < target->getMCurrentNode()->getPosition().x + heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				return true;
+			}
+		}
+		else{
+			if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				//崩了
+				return true;
+			}
 		}
 		return false;
 		break;
 	}
 	case HeroAtkType::GongJianShou:{
-		if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
-			&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
-			target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
-			return true;
+		if (isMonster){
+			if (mWuQi->getPosition().x < target->getMCurrentNode()->getPosition().x + heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				return true;
+			}
+		}
+		else{
+			if (mWuQi->getPosition().x  > target->getMCurrentNode()->getPosition().x - heroW / 2
+				&& target->getMCurrentNode()->getPosition().y < mWuQi->getPosition().y + heroH / 2 &&
+				target->getMCurrentNode()->getPosition().y > mWuQi->getPosition().y - heroH / 2){
+				return true;
+			}
 		}
 		return false;
 		break;
@@ -406,7 +456,6 @@ void HeroObj::attack(std::function<void(Node *)> callback,std::function<void()> 
 		runAction(HeroActionType::Attack);
 		mCurrentAction->setLastFrameCallFunc([=](){
 			
-
 			if (hitWall != nullptr){
 				runAction(HeroActionType::Run);
 				float time = 0.1 * (abs(mWuQi->getPosition().x - targetPosX) / heroW);//从现在的位置到两边的移动时间
