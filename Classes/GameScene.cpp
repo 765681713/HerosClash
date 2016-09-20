@@ -1710,81 +1710,81 @@ void GameScene::aiSchedule(float delay){
 			return;
 		}
 
-		//横向 两步 移动
-		for (int i = 0; i < MAX_COLUMN; i++){
-			for (int j = MAX_COLUMN - 1; j > 1; j--){
-				int index = j * MAX_ROW + i;
-				if (monsterHeros[index] == nullptr){
-					continue;
-				}
-				if (monsterHeros[index]->getActionType() != HeroActionType::Stand){
-					break;
-				}
-				if (monsterHeros[index - MAX_ROW]->getHero()->getId() == monsterHeros[index - 2 * MAX_ROW]->getHero()->getId()){
-					int moveX = 0;
-					int moveY = 0;
-					//移走
-					bool isCan = false;
-					for (int k = 0; k < MAX_COLUMN; k++){
-						for (int l = MAX_COLUMN - 1; l >= 0; l--){
-							int index2 = l * MAX_ROW + k;
-							if (l == 0){
-								if (monsterHeros[index2] == nullptr){
-									moveX = l;
-									moveY = k;
-									isCan = true;
-									break;
-								}
-							}
-							else{
-								if (monsterHeros[index2] == nullptr && monsterHeros[index2 - MAX_ROW] != nullptr &&
-									monsterHeros[index2 - MAX_ROW]->getHero()->getId() != monsterHeros[index - MAX_ROW]->getHero()->getId()){
-									moveX = l;
-									moveY = k;
-									isCan = true;
-									break;
-								}
-							}
-						}
-						if (isCan){
-							break;
-						}
-					}
-					if (isCan){
-						isActionRuning = true;
-						HeroObj * mCurrentHero = monsterHeros[index];
-						mCurrentHero->getMCurrentNode()->runAction(Sequence::create(FadeTo::create(0.2f, 125), DelayTime::create(0.3f),
-							MoveTo::create(0.1f *(MAX_COLUMN - mCurrentHero->getIndexX()), Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())),
-							CallFunc::create([=](){
-							monsterHeros[mCurrentHero->getId()] = nullptr;
-							mCurrentHero->setIndexX(moveX);
-							mCurrentHero->setIndexY(moveY);
-							mCurrentHero->updateNode();
-							monsterHeros[mCurrentHero->getId()] = mCurrentHero;
-						}),
-							MoveTo::create(0, Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())), MoveTo::create(0.1f * (MAX_COLUMN - moveX),
-							Vec2(mCurrentHero->getpositionX(), mCurrentHero->getpositionY())), FadeTo::create(0.2f, 255),
-							CallFunc::create([=](){
-							//判断 准备和防御
-							mHeroPrepareAndDef(true, monsterHeros);
-							this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
-								isActionRuning = false;
-							}), NULL));
-						}), NULL));
-					}
-				}
-				else{
-					break;
-				}
-			}
-			if (isWalk){
-				break;
-			}
-		}
+		////横向 两步 移动
+		//for (int i = 0; i < MAX_COLUMN; i++){
+		//	for (int j = MAX_COLUMN - 1; j > 1; j--){
+		//		int index = j * MAX_ROW + i;
+		//		if (monsterHeros[index] == nullptr){
+		//			continue;
+		//		}
+		//		if (monsterHeros[index]->getActionType() != HeroActionType::Stand){
+		//			break;
+		//		}
+		//		if (monsterHeros[index - MAX_ROW]->getHero()->getId() == monsterHeros[index - 2 * MAX_ROW]->getHero()->getId()){
+		//			int moveX = 0;
+		//			int moveY = 0;
+		//			//移走
+		//			bool isCan = false;
+		//			for (int k = 0; k < MAX_COLUMN; k++){
+		//				for (int l = MAX_COLUMN - 1; l >= 0; l--){
+		//					int index2 = l * MAX_ROW + k;
+		//					if (l == 0){
+		//						if (monsterHeros[index2] == nullptr){
+		//							moveX = l;
+		//							moveY = k;
+		//							isCan = true;
+		//							break;
+		//						}
+		//					}
+		//					else{
+		//						if (monsterHeros[index2] == nullptr && monsterHeros[index2 - MAX_ROW] != nullptr &&
+		//							monsterHeros[index2 - MAX_ROW]->getHero()->getId() != monsterHeros[index - MAX_ROW]->getHero()->getId()){
+		//							moveX = l;
+		//							moveY = k;
+		//							isCan = true;
+		//							break;
+		//						}
+		//					}
+		//				}
+		//				if (isCan){
+		//					break;
+		//				}
+		//			}
+		//			if (isCan){
+		//				isActionRuning = true;
+		//				HeroObj * mCurrentHero = monsterHeros[index];
+		//				mCurrentHero->getMCurrentNode()->runAction(Sequence::create(FadeTo::create(0.2f, 125), DelayTime::create(0.3f),
+		//					MoveTo::create(0.1f *(MAX_COLUMN - mCurrentHero->getIndexX()), Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())),
+		//					CallFunc::create([=](){
+		//					monsterHeros[mCurrentHero->getId()] = nullptr;
+		//					mCurrentHero->setIndexX(moveX);
+		//					mCurrentHero->setIndexY(moveY);
+		//					mCurrentHero->updateNode();
+		//					monsterHeros[mCurrentHero->getId()] = mCurrentHero;
+		//				}),
+		//					MoveTo::create(0, Vec2(mSceneSize.width + 60, mCurrentHero->getpositionY())), MoveTo::create(0.1f * (MAX_COLUMN - moveX),
+		//					Vec2(mCurrentHero->getpositionX(), mCurrentHero->getpositionY())), FadeTo::create(0.2f, 255),
+		//					CallFunc::create([=](){
+		//					//判断 准备和防御
+		//					mHeroPrepareAndDef(true, monsterHeros);
+		//					this->runAction(Sequence::create(DelayTime::create(1.0f), CallFunc::create([=](){
+		//						isActionRuning = false;
+		//					}), NULL));
+		//				}), NULL));
+		//			}
+		//		}
+		//		else{
+		//			break;
+		//		}
+		//	}
+		//	if (isWalk){
+		//		break;
+		//	}
+		//}
 
-		if (isWalk){
-			return;
-		}
+		//if (isWalk){
+		//	return;
+		//}
 
 		//纵向 一步 消失 // 上到下查找
 		for (int i = 0; i < MAX_COLUMN - 1; i++){
